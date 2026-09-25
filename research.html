@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Research &amp; method — GEMS Prize — 6GEMSDOE entry</title>
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<header><div class="wrap">
+<h1>GEMS Prize — 6GEMSDOE entry</h1>
+<div class="sub">DOE GEMS Prize (Geologic Enhanced Mapping System) —
+one entry, one repo, one site. Predict per-pixel fault probability across the
+GeoDAWN region of Nevada/California.</div>
+<nav><a href="index.html">Overview</a><a href="verification.html">Line-by-line verification</a><a href="research.html" class="on">Research & method</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<div class="card">
+  <h2>Method reasoning</h2>
+  <p>Two things decide this competition: <strong>where faults actually are</strong>
+  (the Phase-2 geology judge reads what we flagged) and <strong>how the metric
+  converts a probability surface into a score</strong>. The code here treats both
+  explicitly.</p>
+  <h3>Metric-aware placement</h3>
+  <p>Writing the metric's marginal value of raising the prediction at one pixel
+  gives a break-even posterior, and it is low: at a one-pixel localisation error
+  (k = 2/3) the break-even posterior is
+  <strong>5.26%</strong>; only at the
+  very edge of the kernel does it approach 1. Two consequences follow, and both are
+  measured rather than asserted in the cross-validation table:</p>
+  <ul>
+    <li>Densifying along a line you believe in is not wasteful — a missed
+      ground-truth pixel costs 0.8 of a unit, a nearby prediction collects at most
+      2/3 of a unit of credit.</li>
+    <li>Thinning a true line to every 4th–5th pixel <em>loses</em> score rather than
+      trading it away cleanly: skipped ground-truth pixels are then served at ≥ 2 px,
+      where k ≤ 1/3. The 300 m kernel implies nothing about 4–5 px spacing.</li>
+  </ul>
+  <h3>Why blocked folds</h3>
+  <p>The reference solution draws random patch splits. Faults are spatially
+  autocorrelated, so that design puts pixels of the same fault in train and test and
+  reports an optimistic number. Here every fold holds out whole blocks plus a 300 m
+  buffer, and the buffer is excluded from training as well as from scoring.</p>
+  <h3>Where the derived features come from</h3>
+  <table class=""><thead><tr><th>Feature group</th><th>Why</th><th>Basis</th></tr></thead><tbody><tr><td><code>tmi_hg</code>, <code>tmi_vg</code>, <code>iso_grav_anom_hg</code>, <code>iso_grav_anom_vg</code> (provided)</td><td>Horizontal and vertical derivatives of magnetics/gravity — the raw material for edge detection</td><td>provided as bands 3, 9, 18, 11</td></tr><tr><td><code>mag_asa</code>, <code>grav_asa</code> (derived)</td><td>√(hg² + vg²) analytic-signal amplitude; maxima over contacts and faults</td><td>Nabighian 1972; Roest et al. 1992</td></tr><tr><td><code>mag_tilt</code>, <code>grav_tilt</code> (derived)</td><td>atan2(vertical derivative, |horizontal derivative|); zero-crossings track edges, and it is amplitude-normalised so it works across contrasting units</td><td>Miller & Singh 1994</td></tr><tr><td><code>tmi_hgm_computed</code>, <code>mag_anom_hgm_computed</code>, <code>rtp_hgm_computed</code>, <code>grav_hgm_computed</code> (derived)</td><td>Horizontal gradient magnitude computed from the TMI/gravity surfaces themselves, rather than trusting the provided derivative bands</td><td>task brief, first research priority</td></tr><tr><td><code>curv_total</code>, <code>curv_profile</code>, <code>curv_plan</code>, <code>curv_gaussian</code> (derived)</td><td>Curvature of the detrended-elevation surface — fault scarps are breaks in slope, which curvature isolates and slope alone does not</td><td>Zevenbergen & Thorne 1987; Moore et al. 1991</td></tr><tr><td><code>slope_of_slope</code> (derived)</td><td>|∇ slope| — a direct break-in-slope detector for scarp mapping</td><td>task brief, second research priority</td></tr><tr><td><code>lin_elev_*</code>, <code>lin_tmi_*</code>, <code>lin_grav_*</code> (derived)</td><td>Structure-tensor eigenvalue energy, coherence, and orientation cos/sin at two length scales — a lineament detector that does not need a bespoke Hough/CNN stack</td><td>Weickert 1998; Bigun & Granlund 1987</td></tr><tr><td><code>x_geod_shearrate__geod_dilaterate</code>, <code>x_cond_surf__depth_to_base_surf</code>, <code>x_ieq_n100a15__deq_n100a15</code> (derived)</td><td>Explicit products so agreement between strain rate, conductivity and seismicity can be learned rather than assumed</td><td>task brief, third research priority</td></tr></tbody></table>
+</div>
+<div class="card">
+  <h2>Sources, for manual review</h2>
+  <table class=""><thead><tr><th>What it supplies</th><th>Reference</th><th>Link</th></tr></thead><tbody><tr><td>GeoDAWN airborne magnetic and radiometric surveys (the feature backbone)</td><td>Glen & Earney 2024, USGS data release</td><td>https://doi.org/10.5066/P93LGLVQ</td></tr><tr><td>INGENIOUS Great Basin Regional Dataset Compilation (the training labels)</td><td>Ayling et al. 2022, Geothermal Data Repository</td><td>https://doi.org/10.15121/1881483</td></tr><tr><td>Automatic fault mapping in remote optical images and topographic data with deep learning — cited by the competition's own About page</td><td>Mattéo et al. 2021, JGR Solid Earth</td><td>https://doi.org/10.1029/2020JB021269</td></tr><tr><td>Using deep learning to map Quaternary faults in Western USA — cited by the competition's own About page</td><td>Hermant, Kiersnowski & Bellanger 2025, 50th Workshop on Geothermal Reservoir Engineering (Stanford)</td><td>https://pangea.stanford.edu/ERE/db/GeoConf/papers/SGW/2025/Hermant.pdf</td></tr><tr><td>Tilt-angle edge detection for potential fields</td><td>Miller & Singh 1994, Geophysics 62(1)</td><td>https://doi.org/10.1190/1.1444129</td></tr><tr><td>Analytic-signal amplitude and its use in locating edges</td><td>Roest, Verhoef & Pilkington 1992, Geophysics 57(1)</td><td>https://doi.org/10.1190/1.1443174</td></tr><tr><td>The analytic signal of two-dimensional magnetic bodies</td><td>Nabighian 1972, Geophysics 37(3)</td><td>https://doi.org/10.1190/1.1440276</td></tr><tr><td>Local orientation / structure tensor for lineament detection</td><td>Weickert 1998, Computer Vision and Applications; Bigun & Granlund 1987</td><td>https://doi.org/10.1109/TPAMI.1987.4767965</td></tr><tr><td>Curvature of terrain surfaces from gridded elevation</td><td>Zevenbergen & Thorne 1987, Math. Geol. 19(2); Moore, Grayson & Ladson 1991</td><td>https://doi.org/10.1007/BF00893750</td></tr><tr><td>Distance-weighted / Tversky index family</td><td>Tversky 1977, Psychological Review 84(4); Salehi et al. 2017 (Tversky loss)</td><td>https://doi.org/10.1037/0033-295X.84.4.327</td></tr></tbody></table>
+  <p class="note">The two deep-learning fault-mapping papers were cited by the
+  competition's own About page; the potential-field edge methods are the standard
+  operators for exactly the magnetic and gravity layers this competition provides.</p>
+</div>
+<div class="card">
+  <h2>Reproducing everything on this site</h2>
+  <pre class="code">git clone https://github.com/buffedlizard55-lab/6GEMSDOE &amp;&amp; cd 6GEMSDOE
+pip install --break-system-packages numpy scipy rasterio scikit-learn tifffile pillow pytest
+python scripts/fetch_and_verify_data.py     # places the official rasters, verifies sha256
+python scripts/analysis.py --only spec,baselines,bands   # measured evidence
+python scripts/build_features.py            # 48-channel stack (disk-backed)
+python scripts/analysis.py --only cv        # blocked, buffered cross-validation
+python scripts/build_submission.py          # writes + gates the submission GeoTIFF
+python -m pytest tests/ -q                  # metric + gate + spec tests
+python scripts/build_site.py                # regenerates this site</pre>
+</div>
+</div></main>
+<footer><div class="wrap">
+Competition: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/</a> · Problem description: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/</a> ·
+About: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/page/968/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/page/968/</a> · Data: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/data/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/data/</a> ·
+Rules PDF: <a href="https://www.nlr.gov/docs/fy26osti/96647.pdf" rel="noopener">https://www.nlr.gov/docs/fy26osti/96647.pdf</a> ·
+Reference solution: <a href="https://github.com/drivendataorg/gems-prize-reference-solution" rel="noopener">https://github.com/drivendataorg/gems-prize-reference-solution</a>
+<p>This page is generated by <code>scripts/build_site.py</code> from measured
+evidence in <code>data/evidence/</code>. Numbers are not typed by hand.</p>
+</div></footer></body></html>

@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# Large official raster (418,912,844 B). Not committed: it exceeds any sensible
+# git budget and is reproducible. scripts/fetch_and_verify_data.py places it and
+# re-verifies its sha256 against the pin in src/gems/spec.py.
+# ---------------------------------------------------------------------------
+data/training_features.tif
+
+# ---------------------------------------------------------------------------
+# Derived artifacts: 12,279,160 px x 48 channels x 4 B = 2.25 GB + a 12 MB mask.
+# Rebuilt in ~2 minutes by scripts/build_features.py (streaming, tile by tile).
+# ---------------------------------------------------------------------------
+data/evidence/features.f32.npy
+data/evidence/_invalid_allband.npy
+
+# Python / tooling noise
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+.venv/
+build/
+dist/
+
+# ...but the evidence JSON and the shipped submission file ARE committed: they
+# are the audit trail the site renders, and they are small.
+!data/evidence/*.json
+!downloads/*.tif

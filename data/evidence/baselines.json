@@ -1,0 +1,51 @@
+{
+  "definition": "DTI vs the PUBLIC CATALOGUE labels (proxy only)",
+  "cases": {
+    "all_zero": {
+      "tp_w": 0.0,
+      "fp_w": 0.0,
+      "fn_w": 60988.0,
+      "dti": 0.0,
+      "n_pos_pred": 0,
+      "n_gt": 60988,
+      "note": "the official description calls this 'total fault absence'",
+      "coverage_of_footprint_pct": 0.0
+    },
+    "all_one_everywhere": {
+      "tp_w": 60988.0,
+      "fp_w": 12068002.159072412,
+      "fn_w": 0.0,
+      "dti": 0.024645714501817493,
+      "n_pos_pred": 12279160,
+      "n_gt": 60988,
+      "note": "the 'predict everywhere' case the brief cites at ~0.10 DTI",
+      "coverage_of_footprint_pct": 237.6287
+    },
+    "all_one_inside_footprint": {
+      "tp_w": 60988.0,
+      "fp_w": 4956731.46391616,
+      "fn_w": 0.0,
+      "dti": 0.05795496774955217,
+      "n_pos_pred": 5167373,
+      "n_gt": 60988,
+      "note": "predict 1 only inside the official footprint (no NaNs)",
+      "coverage_of_footprint_pct": 100.0
+    },
+    "catalogue_copy_sample_submission": {
+      "tp_w": 60988.0,
+      "fp_w": 0.0,
+      "fn_w": 0.0,
+      "dti": 1.0,
+      "n_pos_pred": 60988,
+      "n_gt": 60988,
+      "note": "reproducing the published faults \u2014 the 'wrong target' trap",
+      "coverage_of_footprint_pct": 1.1803
+    }
+  },
+  "analytic": {
+    "coverage_of_footprint": 0.011802515514169385,
+    "coverage_of_grid": 0.004966789259200141,
+    "closed_form_c/(c+a(1-c))": 0.056352187310871174,
+    "note": "closed form with c = positives/footprint; compare with the exact all_one_inside_footprint case above"
+  }
+}

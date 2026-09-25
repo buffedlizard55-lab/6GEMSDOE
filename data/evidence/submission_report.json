@@ -1,0 +1,112 @@
+{
+  "file": "gems6_hgb48-thr030_01be9644f2.tif",
+  "sha256": "01be9644f2ec0df9324cfd36ef516bd35a3456b9164b30995ba66e9e1c63be43",
+  "bytes": 3214769,
+  "gate_ok": true,
+  "gate": {
+    "path": "/home/user/6GEMSDOE/downloads/gems6_hgb48-thr030_01be9644f2.tif",
+    "ok": true,
+    "checks": [
+      {
+        "name": "file-exists",
+        "ok": true,
+        "hard": true,
+        "detail": "3214769 bytes"
+      },
+      {
+        "name": "single-band",
+        "ok": true,
+        "hard": true,
+        "detail": "band count = 1"
+      },
+      {
+        "name": "dtype-float32",
+        "ok": true,
+        "hard": true,
+        "detail": "dtype = float32"
+      },
+      {
+        "name": "crs-epsg32611",
+        "ok": true,
+        "hard": true,
+        "detail": "CRS = EPSG:32611 (epsg 32611)"
+      },
+      {
+        "name": "resolution-100m",
+        "ok": true,
+        "hard": true,
+        "detail": "resolution = (100.0, 100.0)"
+      },
+      {
+        "name": "shape",
+        "ok": true,
+        "hard": true,
+        "detail": "shape = (3730, 3292), expected (3730, 3292)"
+      },
+      {
+        "name": "geotransform",
+        "ok": true,
+        "hard": true,
+        "detail": "transform = (100.0, 0.0, 243350.0, 0.0, -100.0, 4508550.0)"
+      },
+      {
+        "name": "nodata-nan",
+        "ok": true,
+        "hard": true,
+        "detail": "declared nodata = nan"
+      },
+      {
+        "name": "values-in-0-1",
+        "ok": true,
+        "hard": true,
+        "detail": "finite range = [0.0, 0.9365358948707581]"
+      },
+      {
+        "name": "no-inf",
+        "ok": true,
+        "hard": true,
+        "detail": "inf pixels = 0"
+      },
+      {
+        "name": "template-verified",
+        "ok": true,
+        "hard": true,
+        "detail": "official sample submission sha256 ok, footprint = 5167373 px"
+      },
+      {
+        "name": "NAN-INSIDE-FOOTPRINT",
+        "ok": true,
+        "hard": true,
+        "detail": "0 non-finite pixels inside the scored footprint (this is the exact condition that makes the submission form answer 'Predicted values must be in range [0, 1]')"
+      },
+      {
+        "name": "footprint-matches-official",
+        "ok": true,
+        "hard": true,
+        "detail": "0 finite pixels outside the official footprint (use --allow-footprint-subset for experiments only)"
+      }
+    ],
+    "stats": {
+      "total_pixels": 12279160,
+      "finite_pixels": 5167373,
+      "nan_pixels": 7111787,
+      "inf_pixels": 0,
+      "declared_sha256": "01be9644f2ec0df9324cfd36ef516bd35a3456b9164b30995ba66e9e1c63be43",
+      "finite_min": 0.0,
+      "finite_max": 0.9365358948707581,
+      "positive_pixels": 370752,
+      "nan_inside_footprint": 0,
+      "finite_outside_footprint": 0
+    }
+  },
+  "strategy": "threshold",
+  "threshold": 0.3,
+  "model": "HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40)",
+  "train": {
+    "n_pos": 60988,
+    "n_neg": 400000,
+    "n_features": 48
+  },
+  "n_channels": 48,
+  "generated_utc": "2026-09-25T19:48:47Z"
+}
