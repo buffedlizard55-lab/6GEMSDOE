@@ -118,6 +118,27 @@ def densify_along_lineaments(prob: np.ndarray, valid: np.ndarray,
     return np.clip(np.nan_to_num(out, nan=0.0), 0.0, 1.0)
 
 
+def topk_mask(p: np.ndarray, valid: np.ndarray, frac: float) -> np.ndarray:
+    """Exactly the top `frac` share of valid pixels by probability (>= tie-broken).
+
+    Selecting a BUDGET rather than a probability cut-off is the right control for
+    this metric: FP_w is an absolute sum over predicted pixels while TP_w and
+    FN_w are per-ground-truth-pixel sums, so the score depends on how many
+    pixels you commit to relative to how many fault pixels exist — a quantity a
+    probability threshold only controls indirectly.
+    """
+    p = np.clip(np.nan_to_num(p, nan=0.0), 0.0, 1.0)
+    n_valid = int(valid.sum())
+    if n_valid == 0:
+        return np.zeros_like(valid)
+    k = max(1, int(round(frac * n_valid)))
+    if k >= n_valid:
+        return valid.astype(bool)
+    inside = p[valid]
+    thr = float(np.partition(inside, n_valid - k)[n_valid - k])
+    return (p >= thr) & valid
+
+
 def get_strategy(name: str, prob: np.ndarray, valid: np.ndarray, threshold: float,
                  spacing: int = 4, top_fraction: float = 0.01) -> np.ndarray:
     """Compute a single named placement.
@@ -130,6 +151,22 @@ def get_strategy(name: str, prob: np.ndarray, valid: np.ndarray, threshold: floa
         return strategies(prob, valid, threshold, spacing, top_fraction)["raw"]
     if name == "threshold":
         return strategies(prob, valid, threshold, spacing, top_fraction)["threshold"]
+    if name.startswith("hard@"):
+        # p -> 1 on the selected pixels. See the module docstring: the metric can
+        # be written as DTI = TP_w / (beta*n_gt + alpha*FP_w + (1-beta)*TP_w),
+        # which is strictly increasing under p -> lambda*p because the beta*n_gt
+        # term does not scale. Fractional probabilities therefore give away score.
+        thr = float(name.split("@", 1)[1])
+        p = np.clip(np.nan_to_num(prob, nan=0.0), 0.0, 1.0)
+        return np.where((p >= thr) & valid, 1.0, 0.0).astype(np.float32)
+    if name.startswith("topk_hard@"):
+        frac = float(name.split("@", 1)[1])
+        p = np.clip(np.nan_to_num(prob, nan=0.0), 0.0, 1.0)
+        return np.where(topk_mask(p, valid, frac), 1.0, 0.0).astype(np.float32)
+    if name.startswith("topk_soft@"):
+        frac = float(name.split("@", 1)[1])
+        p = np.clip(np.nan_to_num(prob, nan=0.0), 0.0, 1.0)
+        return np.where(topk_mask(p, valid, frac), p, 0.0).astype(np.float32)
     if name == "densified":
         return densify_along_lineaments(
             np.where(valid, np.clip(np.nan_to_num(prob, nan=0.0), 0, 1), 0.0),

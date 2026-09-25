@@ -12,9 +12,10 @@ shortest path to it, followed by what has and has not been verified.
    <https://www.drivendata.org/competitions/306/competition-doe-gems/>
 3. Click **Submit** → **Make new submission** (the competition home page documents
    this exact flow under "How to compete", step 6).
-4. **Upload the file** and paste the methodology note shown on the site (the file
-   name is content-addressed — the current file is `gems6_hgb48-thr030_01be9644f2.tif`
-   (sha256 `01be9644f2ec0df9…`) — so it can be told apart from earlier attempts later.
+4. **Upload the file** and paste the methodology note shown on the site. The file
+   name is content-addressed — the current file is
+   `gems6_hgb88-topk03_33cec71ff0.tif` (sha256 `33cec71ff0…`) — so it can be told
+   apart from earlier attempts later.
 5. That is also the file to select as the **single final submission** for both prize
    rounds. Only one selection is allowed, and it must be made without knowing the
    private scores.
@@ -24,6 +25,9 @@ exactly one final submission across both rounds (§3.5, §3.6.2). Do not spend a
 until the file has passed `scripts/validate_submission.py` locally.
 
 ## 2. What the file must satisfy (all rules quoted from the official pages)
+
+Re-fetched and re-checked on 2026-09-25 from
+<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/>.
 
 | Rule | Requirement | Source |
 |---|---|---|
@@ -37,72 +41,130 @@ until the file has passed `scripts/validate_submission.py` locally.
 
 ## 3. What the shipped file is, and what it measured
 
-Built by `scripts/build_submission.py --strategy threshold --threshold 0.30`
-(deterministic: rebuilding reproduces the same sha256):
+Built by
+
+```bash
+python scripts/build_submission.py --tag hgb88-topk03 \
+       --strategy "topk_hard@0.03" --n-channels 88 --max-neg 400000 --iters 300
+```
 
 | Property | Value |
 |---|---|
-| File | `downloads/gems6_hgb48-thr030_01be9644f2.tif` |
-| Bytes | 3,214,769 |
-| sha256 | `01be9644f2ec0df9324cfd36ef516bd35a3456b9164b30995ba66e9e1c63be43` |
+| File | `downloads/gems6_hgb88-topk03_33cec71ff0.tif` |
+| Bytes | 1,652,883 |
+| sha256 | `33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab` |
 | Gate | **PASS**, all 13 checks including NaN-inside-footprint |
-| Training | 60,988 catalogue fault pixels + 400,000 sampled negatives, 48 channels |
-| Model | `HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40)` |
+| Values | exactly two distinct values: `0.0` and `1.0` |
+| Predicted pixels | 155,021 = 3.00% of the 5,167,373-pixel footprint |
+| Training | 60,988 catalogue fault pixels + 400,000 sampled negatives, 88 channels |
+| Model | `HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40, l2_regularization=1.0)` |
 
-Measured on **spatially blocked, buffered folds** (4×4 blocks, 300 m buffer), scored
-against the public catalogue — a proxy, not a leaderboard value:
+### Why this file rather than the previous one
 
-| Placement | mean blocked DTI |
-|---|---|
-| **binary at 0.30 (shipped)** | **0.1119** |
-| binary at 0.40 | 0.1055 |
-| raw probability surface | 0.0763 |
-| skeleton (thinned to one pixel) | 0.0829 |
-| skeleton thinned to every 4th px (the brief's rule) | 0.0621 |
-| predict 1 everywhere inside the footprint (no model) | 0.0580 |
+Two changes, both measured on **spatially blocked, buffered folds** (same folds, same
+training budget, same evaluation code — `scripts/experiment.py`), not asserted:
 
-So the shipped placement improves on the raw surface by about
-47%, and the brief's
-4–5 px spacing rule would have given up about
-44% of the
-achievable score. The threshold was chosen by this sweep, not by taste.
+| Change | Blocked-CV mean DTI | vs previous |
+|---|---|---|
+| previous file: fractional probabilities, threshold 0.30 | 0.1119 | — |
+| write `1.0` instead of the model probability, same threshold | 0.1520–0.1668 | **+36% to +49%** |
+| **shipped: top 3% of the footprint by probability, written as `1.0`** | **0.1698** | **+52%** |
+
+The first change follows from an algebraic identity of the published metric. Writing
+`FN_w = n_gt − TP_w` (which is what the definitions on page 967 give) reduces the
+score to
+
+```
+DTI = TP_w / ( beta * n_gt + alpha * FP_w + (1 - beta) * TP_w )
+```
+
+and the `beta * n_gt` term does **not** scale with the predicted probability, so DTI
+is strictly increasing under `p → λ·p` for any λ up to the cap at 1. A submission
+that carries fractional confidence values is donating score to nobody.
+
+The second change is a budget choice. `FP_w` is an absolute sum over predicted
+pixels while `TP_w`/`FN_w` are per-ground-truth-pixel sums, so the right amount to
+predict depends on how many fault pixels the (unseen) test set contains. Measured
+against the public catalogue the nominal optimum is a 5% budget (0.1750), but the
+private set is *new* faults, almost certainly fewer than the 60,988 catalogue
+pixels. Re-scoring the identical predictions against ground truth thinned to whole
+fault traces gives:
+
+| Budget | full catalogue GT | 50% of traces | 25% of traces | worst-case loss |
+|---|---|---|---|---|
+| 2% | 0.1589 | 0.1292 | 0.0643 | −9.2% |
+| **3% (shipped)** | **0.1698** | **0.1278** | **0.0631** | **−5.0%** |
+| 5% | 0.1750 | 0.1184 | 0.0580 | −12.7% |
+
+3% is the minimax-regret choice: it gives up 3% in the best case to avoid a 13% loss
+in the worst.
+
+### What did NOT work (recorded so it is not retried)
+
+* **40 extra multi-scale channels** — horizontal-gradient magnitude at σ = 1.5/3/6 px
+  on five surfaces, tilt and analytic-signal amplitude at matched scales, multi-scale
+  curvature, local texture, structure-tensor lineaments on conductivity and RTP.
+  Blocked-CV at the shipped hyperparameters: 0.1698 with them vs 0.1628 without
+  (a real but small gain); at the round-1 hyperparameters the two were identical
+  (0.1729 vs 0.1730). Kept, because it is never worse — but it is not the win.
+* **Lineament post-processing** (max over straight segments of 3/5/9 px in 8
+  orientations, and 50/50 mixes): best variant 0.1637 vs 0.1750 without. The filter
+  raises isolated pixels that happen to lie on a line, which costs false positives
+  for the same budget.
+* **More training capacity** (400,000 negatives and 300 iterations vs 200,000 and
+  200): no gain at the 5% budget (0.1694 vs 0.1730). Kept anyway because the final
+  model is trained on all four blocks rather than three.
 
 ## 4. What is verified in this repository
 
 * **The official bytes are hash-verified.** `data/training_features.tif`
   (418,912,844 B, sha256 `4371c82e…`), `data/labels.tif` (425,830 B, sha256
   `7ba308cc…`) and `data/sample_submission.tif` (1,599,597 B, sha256 `2176d08e…`)
-  were reassembled from sha256-pinned transport parts and every hash re-computed
-  here. `src/gems/spec.py` holds the pins; `scripts/fetch_and_verify_data.py`
-  re-verifies them and refuses to place a mismatch.
+  were reassembled from sha256-pinned transport parts on 2026-09-25 and every hash
+  re-computed here. `src/gems/spec.py` holds the pins;
+  `scripts/fetch_and_verify_data.py` re-verifies them and refuses to place a
+  mismatch.
 * **The grid constants are measured, not assumed** — 3730 × 3292, EPSG:32611, 100 m,
   origin (243350, 4508550), footprint 5,167,373 pixels. Re-measured by
   `scripts/analysis.py --only spec` and compared against the pins.
-* **The metric is implemented from the published formula** in
-  `src/gems/metric.py`, and unit-tested against the competition page's own worked
-  example (TP_w = 3.00, FP_w = 1.89, FN_w = 2.00 → 0.60) plus hand-computable cases.
+* **The metric is implemented from the published formula** in `src/gems/metric.py`,
+  and unit-tested against the competition page's own worked example
+  (TP_w = 3.00, FP_w = 1.89, FN_w = 2.00 → 0.60) plus hand-computable cases, a
+  brute-force re-derivation, and the `TP_w + FN_w = n_gt` identity.
 * **The format gate is a hard gate.** `scripts/validate_submission.py` exits non-zero
   on any violation, and it specifically refuses a file with a NaN inside the scored
   footprint — the condition that makes the submission form answer *"Predicted values
   must be in range [0, 1]"* even though every finite value is legal.
-  `tests/test_gate.py` proves it rejects exactly that file.
+  `tests/test_gate.py` proves it rejects exactly that file. Re-run on the shipped
+  file this session: 13/13 PASS.
+* **The new harness reproduces the old number exactly.** `scripts/experiment.py` on
+  the baseline 48-channel model gives `soft@0.3` = 0.1119 / min 0.0933 / max 0.1253 —
+  identical to the value the previous submission was chosen on. So the improvements
+  above are measured against the same yardstick, not a new one.
 
 ## 5. What is NOT claimed
 
 * **No leaderboard score is claimed or predicted.** The competition is scored against
   private expert labels; we do not have them, and we have not uploaded anything.
   Every score in this repo is explicitly labelled a proxy against the public
-  catalogue.
+  catalogue on held-out blocks.
+* **The catalogue is the wrong target and we know it.** Both rounds score faults
+  MISSING from the catalogue (the competition home page confirms the test set is
+  "newly identified faults" with spatial overlap to the training faults). Our proxy
+  measures rediscovery of *known* faults from held-out blocks, which is easier than
+  the real task. The true score will be lower than 0.1698; we do not know by how
+  much.
 * **The model here is not the reference solution's model.** The reference is a
-  ResNet-18 U-Net trained over five Monte-Carlo folds. This host has 2 CPUs, 3 GB of
+  ResNet-18 U-Net trained over five Monte-Carlo folds. This host has 2 CPUs, 4 GB of
   RAM and no GPU, so the shipped model is a histogram gradient-boosting classifier on
-  sampled pixels over 48 feature channels. It is weaker, and it is labelled as such.
+  sampled pixels over 88 feature channels. It is weaker, and it is labelled as such.
 * **The 1 m DEM is not incorporated.** See `LIMITATIONS.md`.
 
 ## 6. The single outstanding risk to eligibility
 
 The hosting account holds **eleven** GEMS-named repositories and has **GitHub Pages
-enabled on all eleven** for this one challenge. That is a rules-relevant duplication, and it is
+enabled on all eleven** for this one challenge — five of them complete copies with
+their own sites and data. That is a rules-relevant duplication, re-verified and
 audited in `ACCOUNT_STATUS.md`. Until the other copies are archived or deleted, this
 entry is exposed to an Appendix A.12 due-diligence finding. This repository is the
 designated single entry; nothing here creates a second registration, site or entry.

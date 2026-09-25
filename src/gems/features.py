@@ -105,6 +105,37 @@ def nan_uniform(arr: np.ndarray, size: int) -> np.ndarray:
     return _guarded_filter(arr, lambda a: ndimage.uniform_filter(a, size), r)
 
 
+def local_std(arr: np.ndarray, sigma: float) -> np.ndarray:
+    """Local standard deviation over a Gaussian window (NaN-guarded).
+
+    A textural rather than a geometric channel: fault zones and their damage
+    zones show up as locally rougher potential fields / rougher ground than the
+    surrounding block, independently of the sign of the anomaly.
+    """
+    r = int(np.ceil(3 * sigma))
+    m1 = nan_gaussian(arr, sigma)
+    m2 = nan_gaussian(np.where(np.isfinite(arr), arr * arr, np.nan), sigma)
+    with np.errstate(invalid="ignore"):
+        var = m2 - m1 * m1
+    out = np.sqrt(np.where(var > 0.0, var, 0.0))
+    bad = ~np.isfinite(arr)
+    if bad.any():
+        out = np.where(ndimage.binary_dilation(bad, iterations=r), np.nan, out)
+    return out
+
+
+def curvature_at_scale(arr: np.ndarray, sigma: float,
+                       spacing: float = spec.PIXEL_SIZE_M) -> Curvature:
+    """`curvature()` of a Gaussian-smoothed surface.
+
+    Smoothing first is what makes curvature a *scale-explicit* measurement: at
+    sigma = 1.5 px (150 m) it responds to scarp-scale breaks, at sigma = 3 px
+    (300 m) to the broader monocline/fault-block flexure. Raw second derivatives
+    of a 100 m DEM-derived layer are dominated by pixel noise.
+    """
+    return curvature(nan_gaussian(arr, sigma), spacing)
+
+
 def derivatives(arr: np.ndarray, spacing: float = spec.PIXEL_SIZE_M
                 ) -> tuple[np.ndarray, np.ndarray]:
     """Central-difference d/dx and d/dy in metres, NaN-propagating."""

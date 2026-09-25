@@ -13,6 +13,46 @@ GeoDAWN region of Nevada/California.</div>
 </div></header>
 <main><div class="wrap">
 
+<div class="card hero-card">
+  <h2>Download the submission file</h2>
+  <p class="lead">This is the single file for our single entry. It has been through
+  <code>scripts/validate_submission.py</code>, which is a <strong>hard gate</strong>:
+  it refuses to publish anything the platform would reject.</p>
+  <p class="file">
+    <a class="download" href="downloads/gems6_hgb88-topk03_33cec71ff0.tif" download>⬇ gems6_hgb88-topk03_33cec71ff0.tif</a>
+    <span class="meta">1,652,883 bytes · sha256 <code>33cec71ff00b3f32d0d59c81c156f3f1…</code></span>
+  </p>
+  <ol class="steps">
+    <li>Download the file above (one click).</li>
+    <li>Open the <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/" rel="noopener">competition page</a> and click
+        <em>Submit</em> → <em>Make new submission</em> (DrivenData sign-in required).</li>
+    <li>Upload the file. Leave the comment field as the methodology note below.</li>
+  </ol>
+  <p class="note"><strong>Methodology note for the submission comment</strong> (paste
+    this into the submission form — the brief asks for a short description that
+    distinguishes this file from earlier attempts):</p>
+  <p class="methodnote"><code>One entry. Probability surface from
+    HistGradientBoosting over 88 channels — the 19 official
+    GeoDAWN/USGS bands plus derived horizontal-gradient magnitude, analytic-signal
+    amplitude, tilt derivative, multi-scale curvature, break-in-slope and
+    structure-tensor lineament features — trained on all catalogue fault pixels plus
+    400k sampled negatives, validated on spatially blocked, buffered folds
+    (300 m buffer). The submission keeps the top 3% of the
+    footprint by predicted probability and writes 1.0 on those pixels: the published
+    metric reduces to DTI = TP_w/(0.8*n_gt + 0.2*FP_w + 0.2*TP_w), which is strictly
+    increasing in the predicted value, so fractional confidence gives score away. The
+    budget is the minimax-regret choice across ground-truth sizes (experiments card).
+    Blocked-CV proxy DTI 0.1698 against the public catalogue — a
+    proxy, not a leaderboard value. Format verified by
+    scripts/validate_submission.py (13/13 checks incl. NaN-inside-footprint).</code></p>
+  <details open><summary>Format gate — all checks (13)</summary>
+    <table class=""><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody><tr><td>file-exists</td><td>PASS</td><td>1652883 bytes</td></tr><tr><td>single-band</td><td>PASS</td><td>band count = 1</td></tr><tr><td>dtype-float32</td><td>PASS</td><td>dtype = float32</td></tr><tr><td>crs-epsg32611</td><td>PASS</td><td>CRS = EPSG:32611 (epsg 32611)</td></tr><tr><td>resolution-100m</td><td>PASS</td><td>resolution = (100.0, 100.0)</td></tr><tr><td>shape</td><td>PASS</td><td>shape = (3730, 3292), expected (3730, 3292)</td></tr><tr><td>geotransform</td><td>PASS</td><td>transform = (100.0, 0.0, 243350.0, 0.0, -100.0, 4508550.0)</td></tr><tr><td>nodata-nan</td><td>PASS</td><td>declared nodata = nan</td></tr><tr><td>values-in-0-1</td><td>PASS</td><td>finite range = [0.0, 1.0]</td></tr><tr><td>no-inf</td><td>PASS</td><td>inf pixels = 0</td></tr><tr><td>template-verified</td><td>PASS</td><td>official sample submission sha256 ok, footprint = 5167373 px</td></tr><tr><td>NAN-INSIDE-FOOTPRINT</td><td>PASS</td><td>0 non-finite pixels inside the scored footprint (this is the exact condition that makes the submission form answer &#x27;Predicted values must be in range [0, 1]&#x27;)</td></tr><tr><td>footprint-matches-official</td><td>PASS</td><td>0 finite pixels outside the official footprint (use --allow-footprint-subset for experiments only)</td></tr></tbody></table>
+  </details>
+  <details><summary>File statistics</summary><table class=""><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody><tr><td>total pixels</td><td>12279160</td></tr><tr><td>finite pixels</td><td>5167373</td></tr><tr><td>nan pixels</td><td>7111787</td></tr><tr><td>inf pixels</td><td>0</td></tr><tr><td>finite min</td><td>0.0</td></tr><tr><td>finite max</td><td>1.0</td></tr><tr><td>positive pixels</td><td>155021</td></tr><tr><td>nan inside footprint</td><td>0</td></tr><tr><td>finite outside footprint</td><td>0</td></tr></tbody></table></details>
+  <p class="note">Built 2026-09-25T21:06:47Z by
+     <code>scripts/build_submission.py --strategy topk_hard@0.03</code>.
+     Model: <code>HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40, l2_regularization=1.0)</code>.</p>
+</div>
 <div class="card flag">
   <h2>⚠ Account / repo status — FLAGGED FOR REVIEW</h2>
   <p>The competition rules cap <strong>one entry per entity</strong>: up to three
@@ -27,11 +67,15 @@ GeoDAWN region of Nevada/California.</div>
       <code>GEMSDOE4</code>, <code>5GEMSDOE</code>, <code>6GEMSDOE</code>,
       <code>7GEMSDOE</code>, <code>8GEMSDOE</code>, <code>GEMSDOE9</code>,
       <code>GEMSDOE10</code>, <code>11GEMSDOE</code>).</li>
-    <li><strong>Four</strong> of them are substantial (30, 22, 25 and 15 commits, with
-      committed data bridges and predictions).</li>
-    <li><strong>GitHub Pages is enabled on all eleven</strong>, so this one account
-      publishes eleven challenge URLs (the four substantive repos have live, built
-      sites; the rest serve a README-only stub).</li>
+    <li><strong>Five</strong> of them are complete copies of the same project — their
+      own site, their own <code>data/</code> bridge, their own code
+      (<code>GEMSDOE</code> 400,811 KB, <code>GEMSDOE2</code> 421,640 KB,
+      <code>GEMSDOE3</code> 24,765 KB, <code>GEMSDOE4</code>,
+      <code>5GEMSDOE</code> 398,219 KB); the other five hold a
+      <code>README.md</code> and nothing else.</li>
+    <li><strong>GitHub Pages is enabled and built on all eleven</strong> (verified via
+      the GitHub API: <code>status = built</code> for every one), so this one account
+      publishes eleven challenge URLs.</li>
   </ul>
   <p><strong>This repository is the one canonical entry.</strong> Nothing here creates
   a second registration, a second site or a second entry, and no submission should be
@@ -40,39 +84,6 @@ GeoDAWN region of Nevada/California.</div>
   (Appendix A.12 due diligence and risk review; A.16 return of funds) are written to
   catch exactly the practice of spreading one test across multiple sites. Recommended
   action: keep this repo, and delete or archive the other ten.</p>
-</div>
-<div class="card hero-card">
-  <h2>Download the submission file</h2>
-  <p class="lead">This is the single file for our single entry. It has been through
-  <code>scripts/validate_submission.py</code>, which is a <strong>hard gate</strong>:
-  it refuses to publish anything the platform would reject.</p>
-  <p class="file">
-    <a class="download" href="downloads/gems6_hgb48-thr030_01be9644f2.tif" download>⬇ gems6_hgb48-thr030_01be9644f2.tif</a>
-    <span class="meta">3,214,769 bytes · sha256 <code>01be9644f2ec0df9324cfd36ef516bd3…</code></span>
-  </p>
-  <ol class="steps">
-    <li>Download the file above (one click).</li>
-    <li>Open the <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/" rel="noopener">competition page</a> and click
-        <em>Submit</em> → <em>Make new submission</em> (DrivenData sign-in required).</li>
-    <li>Upload the file. Leave the comment field as the methodology note below.</li>
-  </ol>
-  <p class="note"><strong>Methodology note for the submission comment</strong> (paste
-    this into the submission form — the brief asks for a short description that
-    distinguishes this file from earlier attempts):</p>
-  <p class="methodnote"><code>One entry. Probability surface from
-    HistGradientBoosting over 48 channels — the 19 official
-    GeoDAWN/USGS bands plus derived horizontal-gradient, analytic-signal, tilt,
-    curvature, break-in-slope and structure-tensor lineament features — trained on all
-    catalogue fault pixels plus 400k sampled negatives, scored on spatially blocked
-    folds with a 300 m buffer, and binarised at the CV-optimal threshold
-    0.3. Format verified by scripts/validate_submission.py.</code></p>
-  <details open><summary>Format gate — all checks (13)</summary>
-    <table class=""><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody><tr><td>file-exists</td><td>PASS</td><td>3214769 bytes</td></tr><tr><td>single-band</td><td>PASS</td><td>band count = 1</td></tr><tr><td>dtype-float32</td><td>PASS</td><td>dtype = float32</td></tr><tr><td>crs-epsg32611</td><td>PASS</td><td>CRS = EPSG:32611 (epsg 32611)</td></tr><tr><td>resolution-100m</td><td>PASS</td><td>resolution = (100.0, 100.0)</td></tr><tr><td>shape</td><td>PASS</td><td>shape = (3730, 3292), expected (3730, 3292)</td></tr><tr><td>geotransform</td><td>PASS</td><td>transform = (100.0, 0.0, 243350.0, 0.0, -100.0, 4508550.0)</td></tr><tr><td>nodata-nan</td><td>PASS</td><td>declared nodata = nan</td></tr><tr><td>values-in-0-1</td><td>PASS</td><td>finite range = [0.0, 0.9365358948707581]</td></tr><tr><td>no-inf</td><td>PASS</td><td>inf pixels = 0</td></tr><tr><td>template-verified</td><td>PASS</td><td>official sample submission sha256 ok, footprint = 5167373 px</td></tr><tr><td>NAN-INSIDE-FOOTPRINT</td><td>PASS</td><td>0 non-finite pixels inside the scored footprint (this is the exact condition that makes the submission form answer &#x27;Predicted values must be in range [0, 1]&#x27;)</td></tr><tr><td>footprint-matches-official</td><td>PASS</td><td>0 finite pixels outside the official footprint (use --allow-footprint-subset for experiments only)</td></tr></tbody></table>
-  </details>
-  <details><summary>File statistics</summary><table class=""><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody><tr><td>total pixels</td><td>12279160</td></tr><tr><td>finite pixels</td><td>5167373</td></tr><tr><td>nan pixels</td><td>7111787</td></tr><tr><td>inf pixels</td><td>0</td></tr><tr><td>finite min</td><td>0.0</td></tr><tr><td>finite max</td><td>0.9365358948707581</td></tr><tr><td>positive pixels</td><td>370752</td></tr><tr><td>nan inside footprint</td><td>0</td></tr><tr><td>finite outside footprint</td><td>0</td></tr></tbody></table></details>
-  <p class="note">Built 2026-09-25T19:48:47Z by
-     <code>scripts/build_submission.py --strategy threshold</code>.
-     Model: <code>HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40)</code>.</p>
 </div>
 <div class="card">
   <h2>The executive summary</h2>
@@ -109,18 +120,72 @@ GeoDAWN region of Nevada/California.</div>
   form at this coverage — see the verification page.</p>
 </div>
 <div class="card">
+  <h2>Experiments — what actually moved the score</h2>
+  <p>Every number below comes from <code>scripts/experiment.py</code>, which trains
+  each variant on the <strong>same</strong> spatially blocked, buffered folds
+  (4×4 blocks, buffer
+  3 px = 300 m), with the same
+  training budget and the same evaluation code. Scores are against the
+  <strong>public catalogue</strong> on held-out blocks — a proxy for the private
+  new-fault test set, not a leaderboard value.</p>
+  <h3>1. Write 1.0, not the model's probability</h3>
+  <p>From the published definitions, <code>FN_w = n_gt − TP_w</code>, so</p>
+  <pre class="code">DTI = TP_w / ( TP_w + α·FP_w + β·FN_w )
+    = TP_w / ( β·n_gt + α·FP_w + (1−β)·TP_w )          α=0.2, β=0.8</pre>
+  <p>The <code>β·n_gt</code> term does not scale with <code>p</code>, so DTI is
+  <strong>strictly increasing</strong> under <code>p → λ·p</code> for every λ up to the
+  cap at 1. Measured, on the configuration the previous file used:</p>
+  <table class=""><thead><tr><th>Placement</th><th>mean blocked DTI</th></tr></thead><tbody><tr><td><code>soft@0.3</code></td><td>0.1119</td></tr><tr><td><code>hard@0.3</code></td><td>0.1648</td></tr><tr><td><code>topk_hard@0.03</code></td><td>0.1682</td></tr><tr><td><code>topk_hard@0.05</code></td><td>0.1730</td></tr></tbody></table>
+  <p>Fractional confidence was donating roughly a third of the achievable score to
+  nobody.</p>
+  <h3>2. Choose a budget, and make it robust to how big the test set is</h3>
+  <p><code>FP_w</code> is an <em>absolute</em> sum over predicted pixels, while
+  <code>TP_w</code> and <code>FN_w</code> are per-ground-truth-pixel sums. The right
+  number of pixels to commit therefore depends on how many fault pixels the hidden
+  test set contains — and the private set is new faults, almost certainly fewer than
+  the 60,988 in the catalogue. The two right-hand columns
+  re-score the <em>identical</em> predictions against ground truth thinned to whole
+  fault traces (8-connected components, dropped at random), which is the closest
+  honest simulation available:</p>
+  <table class=""><thead><tr><th>Placement ★ = shipped</th><th>full catalogue GT</th><th>50% of traces</th><th>25% of traces</th><th>worst-case loss</th></tr></thead><tbody><tr><td><code>topk_hard@0.005</code></td><td>0.0931</td><td>0.0979</td><td>0.0502</td><td>46.8%</td></tr><tr><td><code>topk_hard@0.01</code></td><td>0.1277</td><td>0.1198</td><td>0.0605</td><td>27.1%</td></tr><tr><td><code>topk_hard@0.02</code></td><td>0.1589</td><td>0.1292</td><td>0.0643</td><td>9.2%</td></tr><tr><td><code>topk_hard@0.03</code> ★</td><td>0.1698</td><td>0.1278</td><td>0.0631</td><td>4.9%</td></tr><tr><td><code>topk_hard@0.05</code></td><td>0.1750</td><td>0.1184</td><td>0.0580</td><td>12.7%</td></tr><tr><td><code>topk_hard@0.1</code></td><td>0.1620</td><td>0.0967</td><td>0.0470</td><td>29.3%</td></tr><tr><td><code>hard@0.3</code></td><td>0.1520</td><td>0.1209</td><td>0.0664</td><td>13.2%</td></tr><tr><td><code>hard@0.2</code></td><td>0.1702</td><td>0.1118</td><td>0.0586</td><td>13.5%</td></tr><tr><td><code>soft@0.3</code></td><td>0.0816</td><td>0.0738</td><td>0.0403</td><td>53.4%</td></tr><tr><td><code>raw</code></td><td>0.0732</td><td>0.0470</td><td>0.0225</td><td>66.2%</td></tr></tbody></table>
+  <p class="note"><strong>Shipped: <code>topk_hard@0.03</code></strong> — the top
+  3% of the footprint, written as 1.0. Against the full
+  catalogue a 5% budget is nominally best (0.1750),
+  but it gives up 12.7% if the test set is a quarter the size of the catalogue. The
+  3% budget gives up 3% in the best case to hold its worst case to 5%.</p>
+  <details><summary>Robustness — the same measurement on an independent blocking (6×6 blocks, 6 folds)</summary><table class=""><thead><tr><th>Placement</th><th>full catalogue GT</th><th>50% of traces</th><th>25% of traces</th></tr></thead><tbody><tr><td><code>topk_hard@0.01</code></td><td>0.1413</td><td>0.1196</td><td>0.0670</td></tr><tr><td><code>topk_hard@0.02</code></td><td>0.1700</td><td>0.1276</td><td>0.0695</td></tr><tr><td><code>topk_hard@0.03</code> ★</td><td>0.1807</td><td>0.1261</td><td>0.0671</td></tr><tr><td><code>topk_hard@0.05</code></td><td>0.1844</td><td>0.1155</td><td>0.0612</td></tr><tr><td><code>topk_hard@0.1</code></td><td>0.1675</td><td>0.0938</td><td>0.0494</td></tr><tr><td><code>hard@0.3</code></td><td>0.1710</td><td>0.0992</td><td>0.0507</td></tr><tr><td><code>soft@0.3</code></td><td>0.1245</td><td>0.0824</td><td>0.0439</td></tr></tbody></table><p class="note">The ranking of the budgets is unchanged and the 3% choice is again the minimax-regret one (worst-case loss 3.5% vs 11.9% for the 5% budget that leads on the full catalogue).</p></details>
+  <h3>3. What did <em>not</em> work — recorded so it is not retried</h3>
+  <ul>
+    <li><strong>Lineament post-processing.</strong> Max over straight segments of 3,
+      5 and 9 px in 8 orientations, and 50/50 mixes with the raw surface. Best
+      variant 0.1637 vs
+      0.1750 without: the
+      filter lifts isolated pixels that happen to sit on a line, which costs false
+      positives at a fixed budget.</li>
+    <li><strong>Forty extra multi-scale channels</strong> (horizontal-gradient
+      magnitude at σ = 1.5/3/6 px on five surfaces, tilt and analytic-signal amplitude
+      at matched scales, multi-scale curvature, local texture, structure tensor on
+      conductivity and RTP). Kept, because it is never worse, but at the round-1
+      hyperparameters the 48- and 88-channel models scored 0.1730 and 0.1729 — a
+      difference of nothing.</li>
+    <li><strong>More capacity.</strong> 400k negatives / 300 iterations vs 200k / 200:
+      no gain at a 5% budget (0.1694 vs 0.1730).</li>
+  </ul>
+</div>
+<div class="card">
   <h2>Blocked, buffered cross-validation</h2>
   <p>blocks are contiguous and the buffer excludes training pixels within one kernel support of a scored pixel; the scored set is the held-out blocks intersected with the official footprint Grid: 4×4 blocks,
   4 folds, buffer 3 px
   (300 m). 48 channels.</p>
   <table class=""><thead><tr><th>Placement / threshold</th><th>mean DTI</th><th>min</th><th>max</th><th>folds</th></tr></thead><tbody><tr><td><code>binary@0.3</code></td><td>0.1119</td><td>0.0933</td><td>0.1253</td><td>4</td></tr><tr><td><code>binary@0.4</code></td><td>0.1055</td><td>0.0741</td><td>0.1343</td><td>4</td></tr><tr><td><code>binary@0.2</code></td><td>0.1047</td><td>0.0972</td><td>0.1165</td><td>4</td></tr><tr><td><code>binary@0.1</code></td><td>0.0879</td><td>0.0825</td><td>0.0950</td><td>4</td></tr><tr><td><code>threshold</code></td><td>0.0879</td><td>0.0825</td><td>0.0950</td><td>4</td></tr><tr><td><code>binary@0.5</code></td><td>0.0873</td><td>0.0487</td><td>0.1416</td><td>4</td></tr><tr><td><code>skeleton</code></td><td>0.0829</td><td>0.0752</td><td>0.0879</td><td>4</td></tr><tr><td><code>top1pct</code></td><td>0.0829</td><td>0.0631</td><td>0.1212</td><td>4</td></tr><tr><td><code>densified</code></td><td>0.0803</td><td>0.0754</td><td>0.0859</td><td>4</td></tr><tr><td><code>binary@0.05</code></td><td>0.0797</td><td>0.0770</td><td>0.0846</td><td>4</td></tr><tr><td><code>binary@0.02</code></td><td>0.0767</td><td>0.0748</td><td>0.0811</td><td>4</td></tr><tr><td><code>raw</code></td><td>0.0763</td><td>0.0743</td><td>0.0806</td><td>4</td></tr><tr><td><code>binary@0.6</code></td><td>0.0639</td><td>0.0250</td><td>0.1336</td><td>4</td></tr><tr><td><code>skeleton_spaced4</code></td><td>0.0621</td><td>0.0540</td><td>0.0691</td><td>4</td></tr></tbody></table>
-  <p class="note"><strong>What we shipped and why:</strong> the table is the reason
-  the file uses a plain threshold at the CV-optimal level rather than skeleton
-  thinning or 4-5 px spacing. The choice was made by measurement on held-out blocks;
-  it was not taken on faith from the brief. Note the shipped surface is
-  <strong>recall-heavy</strong> — it predicts far more positive pixels than the
-  catalogue contains — which is what this metric rewards here, and is also the main
-  thing to re-examine against the private labels.</p>
+  <p class="note"><strong>This is the superseded table.</strong> It is the sweep the
+  previous submission file was chosen from, kept as the reference point: the newer
+  harness in <code>scripts/experiment.py</code> reproduces these numbers exactly
+  (<code>soft@0.3</code> here = <code>binary@0.3</code> there = 0.1119), so the
+  improvements in the experiments card below are measured against this yardstick
+  rather than a new one. Note that every row here keeps the model's fractional
+  probability, which the algebra in the experiments card shows to be leaving score
+  on the table.</p>
   <details><summary>Per-fold detail</summary>
   <table class=""><thead><tr><th>Fold</th><th>Train positives</th><th>Scored px</th><th>Scored positives</th><th>Best DTI</th><th>Seconds</th></tr></thead><tbody><tr><td>0</td><td>48,484</td><td>929,173</td><td>12,426</td><td>0.1059</td><td>71.1</td></tr><tr><td>1</td><td>34,354</td><td>2,083,992</td><td>26,366</td><td>0.0984</td><td>83.8</td></tr><tr><td>2</td><td>43,950</td><td>1,519,181</td><td>16,847</td><td>0.1253</td><td>76.9</td></tr><tr><td>3</td><td>55,612</td><td>635,027</td><td>5,349</td><td>0.1416</td><td>58.9</td></tr></tbody></table>
   </details>

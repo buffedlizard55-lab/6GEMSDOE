@@ -1,17 +1,17 @@
 {
-  "file": "gems6_hgb48-thr030_01be9644f2.tif",
-  "sha256": "01be9644f2ec0df9324cfd36ef516bd35a3456b9164b30995ba66e9e1c63be43",
-  "bytes": 3214769,
+  "file": "gems6_hgb88-topk03_33cec71ff0.tif",
+  "sha256": "33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab",
+  "bytes": 1652883,
   "gate_ok": true,
   "gate": {
-    "path": "/home/user/6GEMSDOE/downloads/gems6_hgb48-thr030_01be9644f2.tif",
+    "path": "/home/user/6GEMSDOE/downloads/gems6_hgb88-topk03_33cec71ff0.tif",
     "ok": true,
     "checks": [
       {
         "name": "file-exists",
         "ok": true,
         "hard": true,
-        "detail": "3214769 bytes"
+        "detail": "1652883 bytes"
       },
       {
         "name": "single-band",
@@ -59,7 +59,7 @@
         "name": "values-in-0-1",
         "ok": true,
         "hard": true,
-        "detail": "finite range = [0.0, 0.9365358948707581]"
+        "detail": "finite range = [0.0, 1.0]"
       },
       {
         "name": "no-inf",
@@ -91,22 +91,24 @@
       "finite_pixels": 5167373,
       "nan_pixels": 7111787,
       "inf_pixels": 0,
-      "declared_sha256": "01be9644f2ec0df9324cfd36ef516bd35a3456b9164b30995ba66e9e1c63be43",
+      "declared_sha256": "33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab",
       "finite_min": 0.0,
-      "finite_max": 0.9365358948707581,
-      "positive_pixels": 370752,
+      "finite_max": 1.0,
+      "positive_pixels": 155021,
       "nan_inside_footprint": 0,
       "finite_outside_footprint": 0
     }
   },
-  "strategy": "threshold",
-  "threshold": 0.3,
-  "model": "HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40)",
+  "strategy": "topk_hard@0.03",
+  "threshold": 0.1,
+  "model": "HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40, l2_regularization=1.0)",
   "train": {
     "n_pos": 60988,
     "n_neg": 400000,
-    "n_features": 48
+    "n_features": 88,
+    "max_iter": 300
   },
-  "n_channels": 48,
-  "generated_utc": "2026-09-25T19:48:47Z"
+  "n_channels": 88,
+  "channels_available": 88,
+  "generated_utc": "2026-09-25T21:06:47Z"
 }

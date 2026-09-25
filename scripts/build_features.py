@@ -37,8 +37,15 @@ HALO = 40  # px; > 4 * sigma_max (=32) so filtered interiors are exact
 
 
 def channel_plan() -> list[str]:
+    """Baseline 48 channels FIRST, extended channels after.
+
+    The order is load-bearing: `scripts/experiment.py` compares the baseline
+    model against the extended model by slicing `channels[:48]` vs the full
+    list, so the first 48 names must stay exactly as they were when the 0.1119
+    blocked-CV number was produced. Anything new is appended.
+    """
     names = [n for n, _ in spec.FEATURE_BANDS]
-    return names + [
+    baseline = [
         "mag_asa", "mag_tilt", "tmi_hgm_computed", "tmi_asa_computed",
         "rtp_hgm_computed", "mag_anom_hgm_computed",
         "grav_asa", "grav_tilt", "grav_hgm_computed",
@@ -53,6 +60,32 @@ def channel_plan() -> list[str]:
         "x_cond_surf__depth_to_base_surf",
         "x_ieq_n100a15__deq_n100a15",
     ]
+    extended = []
+    # multi-scale horizontal-gradient magnitude (potential-field edge mapping)
+    for src in ("tmi", "rtp", "mag_anom", "iso_grav_anom", "det_elev"):
+        for sigma in (1.5, 3.0, 6.0):
+            extended.append(f"hgm_{src}_s{sigma:g}")
+    # vertical gradients smoothed (the provided *_vg bands are single-scale)
+    for src in ("tmi", "iso_grav_anom"):
+        for sigma in (1.5, 3.0):
+            extended.append(f"vg_{src}_s{sigma:g}")
+    # analytic-signal amplitude and tilt angle at matched scales
+    for src in ("tmi", "iso_grav_anom"):
+        for sigma in (1.5, 3.0):
+            extended.append(f"asa_{src}_s{sigma:g}")
+            extended.append(f"tdr_{src}_s{sigma:g}")
+    # multi-scale curvature / break-in-slope on detrended elevation
+    for sigma in (1.5, 3.0):
+        extended.append(f"curv_total_s{sigma:g}")
+        extended.append(f"curv_plan_s{sigma:g}")
+        extended.append(f"slope_of_slope_s{sigma:g}")
+    # local texture (std over a Gaussian window) — heterogeneity of the field
+    for src in ("tmi", "det_elev", "iso_grav_anom"):
+        extended.append(f"std_{src}_s3")
+    # lineament tensor on the two sources the baseline stack skipped
+    extended += ["lin_cond_energy_s2", "lin_cond_coherence_s2",
+                 "lin_rtp_energy_s2", "lin_rtp_coherence_s2"]
+    return names + baseline + extended
 
 
 def derived(bands: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
@@ -104,6 +137,54 @@ def derived(bands: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     out["x_geod_shearrate__geod_dilaterate"] = bands["geod_shearrate"] * bands["geod_dilaterate"]
     out["x_cond_surf__depth_to_base_surf"] = bands["cond_surf"] * bands["depth_to_base_surf"]
     out["x_ieq_n100a15__deq_n100a15"] = bands["ieq_n100a15"] * bands["deq_n100a15"]
+
+    # ===================== extended channels (appended) =====================
+    # Multi-scale horizontal-gradient magnitude of the potential fields and of
+    # detrended elevation. HGM peaks over the edges of magnetised / dense
+    # blocks, which is what a buried fault offsets. Three scales because the
+    # depth to the source is unknown: shallow sources give sharp, short-
+    # wavelength edges; deep basin-bounding faults give broad ones.
+    for src in ("tmi", "rtp", "mag_anom", "iso_grav_anom", "det_elev"):
+        for sigma in (1.5, 3.0, 6.0):
+            gx, gy = F.derivatives(F.nan_gaussian(bands[src], sigma))
+            out[f"hgm_{src}_s{sigma:g}"] = np.sqrt(gx * gx + gy * gy)
+            del gx, gy
+
+    # The provided vertical-gradient bands are single-scale and noisy; smoothed
+    # copies let the model use them at more than one wavelength, and the
+    # analytic-signal amplitude / tilt angle are then recomputed at matched
+    # scales (tilt = atan2(VDR, THDR), Miller & Singh 1994 — zero crossings
+    # locate the edge and the amplitude is dimensionless).
+    for src, vg_band in (("tmi", "tmi_vg"), ("iso_grav_anom", "iso_grav_anom_vg")):
+        for sigma in (1.5, 3.0):
+            smooth = F.nan_gaussian(bands[src], sigma)
+            gx, gy = F.derivatives(smooth)
+            hgm = np.sqrt(gx * gx + gy * gy)
+            del gx, gy, smooth
+            vg = F.nan_gaussian(bands[vg_band], sigma)
+            out[f"vg_{src}_s{sigma:g}"] = vg
+            out[f"asa_{src}_s{sigma:g}"] = np.sqrt(hgm * hgm + vg * vg)
+            out[f"tdr_{src}_s{sigma:g}"] = F.tilt_angle(vg, np.abs(hgm))
+            del hgm, vg
+
+    # Scale-explicit curvature and break-in-slope on detrended elevation.
+    for sigma in (1.5, 3.0):
+        c = F.curvature_at_scale(bands["det_elev"], sigma)
+        out[f"curv_total_s{sigma:g}"] = c.total
+        out[f"curv_plan_s{sigma:g}"] = c.plan
+        out[f"slope_of_slope_s{sigma:g}"] = c.slope_of_slope
+        del c
+
+    for src in ("tmi", "det_elev", "iso_grav_anom"):
+        out[f"std_{src}_s3"] = F.local_std(bands[src], 3.0)
+
+    for src_name, src in (("cond", bands["cond_surf"]), ("rtp", bands["rtp"])):
+        ds = F.downsample(src, 2)
+        t = F.structure_tensor(ds, sigma=1.0, integration_sigma=4.0)
+        out[f"lin_{src_name}_energy_s2"] = t.energy
+        out[f"lin_{src_name}_coherence_s2"] = t.coherence
+        del t, ds
+
     return out
 
 
