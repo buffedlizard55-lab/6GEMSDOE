@@ -1,6 +1,8 @@
-# Account and repository status — AUDIT RESULT: FLAGGED
+# Account and repository status — AUDIT RESULT: STILL FLAGGED
 
-**Audited 2026-09-25 (UTC) via the GitHub API, immediately before any other work.**
+**Re-audited 2026-09-25 (UTC) via the GitHub API, before any other work this
+session.** Every number below was produced by a read-only `gh` call in this
+session; nothing is carried over from memory.
 
 ## The rule being audited
 
@@ -17,41 +19,50 @@ prize rounds:
 | Due diligence | rules A.12 | "All applications submitted to DOE are subject to a due diligence review." … "risk review … for potential risks of foreign interference … An elimination based on a risk review is not appealable." |
 | Return of funds | rules A.16 | "if the prize was made based on fraudulent or inaccurate information provided by the competitor to DOE, DOE has the right to demand that any prize funds … be returned" |
 
-Source (verified reachable from this environment on 2026-09-25, redirects to
-`docs.nlr.gov`): <https://www.nlr.gov/docs/fy26osti/96647.pdf>
+Sources, both re-fetched this session:
+<https://www.nlr.gov/docs/fy26osti/96647.pdf> (the official rules PDF) and
+<https://www.drivendata.org/competitions/306/competition-doe-gems/> (the
+competition home page, which confirms **Competition End Date: Dec. 3, 2026,
+11:59 p.m. UTC** and the prize split: Initial round $50,000 across the top five,
+Final round $250,000 as $100k/$70k/$40k/$25k/$15k).
 
-The landing page the DrivenData rules page points at is
-<https://www.herox.com/GEMSPrize/resource/2274>.
+Eligibility (rules §1.3, re-read this session) is worth restating because it is a
+hard gate, not a formality: an individual competitor "must be a U.S. citizen or
+permanent resident"; a team needs a U.S.-citizen/permanent-resident captain;
+"Non-DOE Federal entities and Federal employees are not eligible"; and
+individuals "under 18 years of age" are not eligible.
 
-## What the audit found
+## What the audit found (re-verified this session)
 
 One GitHub account, `buffedlizard55-lab`, owns **eleven** repositories named after
-this one competition:
+this one competition, and **GitHub Pages is enabled and built on all eleven**.
 
-| Repository | Commits | Last push (UTC) | Size (diskUsage) | Substantive? |
+| Repository | Contents (top-level, this session) | Pages status | Disk (KB) | Last push (UTC) |
 |---|---|---|---|---|
-| `GEMSDOE` | 30 | 2026-09-24T23:07:17Z | 400,811 KB | yes |
-| `GEMSDOE2` | 22 | 2026-09-25T17:32:05Z | 421,640 KB | yes |
-| `GEMSDOE3` | 25 | 2026-09-25T17:36:00Z | 24,765 KB | yes |
-| `5GEMSDOE` | 15 | 2026-09-25T19:17:46Z | 0 KB | yes |
-| `6GEMSDOE` | 1 | 2026-09-25T18:21:38Z | 0 KB | **this repo (was an empty stub)** |
-| `GEMSDOE4`, `7GEMSDOE`, `8GEMSDOE`, `GEMSDOE9`, `GEMSDOE10`, `11GEMSDOE` | 1 each | 2026-09-25 | 0 KB | stubs (README only) |
+| `GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 400,811 | 2026-09-24T23:07:17Z |
+| `GEMSDOE2` | full site + `data/` + `scripts/` + `src/` | built | 421,640 | 2026-09-25T17:32:05Z |
+| `GEMSDOE3` | full site + `data/` + `evidence/` + `scripts/` + `src/` | built | 24,765 | 2026-09-25T17:36:01Z |
+| `GEMSDOE4` | full site + `data/` + `scripts/` + `src/` | built | 0 | 2026-09-25T18:16:36Z |
+| `5GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 398,219 | 2026-09-25T19:41:12Z |
+| **`6GEMSDOE`** | **this repository — the designated single entry** | built | 0 | 2026-09-25T19:49:52Z |
+| `7GEMSDOE` | `README.md` only | built | 0 | 2026-09-25T18:22:03Z |
+| `8GEMSDOE` | `README.md` only | built | 0 | 2026-09-25T18:22:23Z |
+| `GEMSDOE9` | `README.md` only | built | 0 | 2026-09-25T18:31:02Z |
+| `GEMSDOE10` | `README.md` only | built | 0 | 2026-09-25T18:31:25Z |
+| `11GEMSDOE` | `README.md` only | built | 0 | 2026-09-25T18:33:58Z |
 
-**GitHub Pages is enabled on all eleven repositories**, so this one account
-publishes eleven challenge URLs under `buffedlizard55-lab.github.io/` (the four
-substantive repos have live, built sites; the stubs serve a README-only page). (`GEMSDOE`, `GEMSDOE2`, `GEMSDOE3`, `5GEMSDOE`, `6GEMSDOE`, and one
-further Pages-enabled repo). Each of the four substantive repos carries its own
-`data/bridge` copy of the official rasters and its own set of generated
-`submission.tif` files under `data/evidence/runs/`.
-
-Reproduction (read-only, no writes):
+Reproduce (read-only):
 
 ```bash
 gh repo list buffedlizard55-lab --limit 100 --json name,pushedAt,diskUsage
-gh repo view buffedlizard55-lab/6GEMSDOE --json createdAt,pushedAt,defaultBranchRef
-gh api repos/buffedlizard55-lab/GEMSDOE3/contents/data --jq '.[].name'
-gh api repos/buffedlizard55-lab/6GEMSDOE/pages
+gh api repos/buffedlizard55-lab/<repo>/pages --jq '.html_url, .status'
+gh api repos/buffedlizard55-lab/<repo>/contents/ --jq '[.[].name] | join(" ")'
 ```
+
+Note the shape of the finding: **five** of the eleven are complete, independent
+copies of the same project (site, data bridge, code), and the remaining five are
+`README.md`-only stubs that nevertheless publish a Pages URL. That is eleven
+published URLs for one challenge.
 
 ## Why this is flagged rather than ignored
 
@@ -71,42 +82,56 @@ Two specific hazards:
    one site multiplies the three-per-week allowance, which is precisely what the
    limit forbids.
 
+## One dependency to be aware of before deleting anything
+
+This repository's official rasters are **sha256-pinned** and re-verified on every
+placement (`scripts/fetch_and_verify_data.py`). The pinned transport currently
+resolves through `buffedlizard55-lab/GEMSDOE`, one of the duplicate repositories
+(`--source codeload`). That is a **byte transport, not a second entry**: the parts
+are trusted because each one's sha256 matches the pin in `src/gems/spec.py`, not
+because of which repository served them, and the reassembled file's hash is
+re-checked before it is written into `data/`. Verified this session — the 418,912,844-byte
+`training_features.tif` was placed and its sha256 confirmed as
+`4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5`.
+
+**Practical consequence:** if the duplicate repositories are deleted, this data
+path must be replaced first — either by downloading the three files from the
+official data tab while signed in to DrivenData, or by keeping a first-party copy
+of the pinned parts. Do not delete the duplicates and then discover the bytes are
+gone.
+
 ## Decision and actions
 
 * **`6GEMSDOE` is designated the single canonical repository and the single
-  published site** for this entry.
-* **No second registration, no second site, and no second entry** are created by
-  this session.
-* **No hypothesis will be tested against any other repository**, and no submission
-  is to be uploaded from any other copy.
-* **No live submission is made by this session.** See "Unknowns" below.
-* This repository contains no pointer that treats another repo as authoritative: the
-  data transport is a *sha256-pinned* bridge (each part hash pinned in
-  `src/gems/spec.py` and re-verified on placement), which means the bytes are
-  trusted because of their hash, **not** because of which repo served them.
+  published site** for this entry. GitHub Pages: `source = main`, `status = built`,
+  <https://buffedlizard55-lab.github.io/6GEMSDOE/>.
+* **No second registration, no second site, and no second entry** was created by
+  this session, and none will be.
+* **No hypothesis is tested against any other repository**, and no submission is
+  uploaded from any other copy. Every number on the site and in
+  `data/evidence/*.json` was produced inside this repository.
+* **No live submission is made from this sandbox.** It has no DrivenData session;
+  the data tab redirects to `/accounts/login/`.
+* This session's improvement work (see `data/evidence/experiments*.json`) is
+  cross-validated inside this repo on our own held-out blocks. It is one model
+  line, not a set of parallel arms across registrations.
 
 ## Unknowns that require a human decision (not resolvable from this sandbox)
 
 1. **Which DrivenData registration is the official entry**, and whether any
-   submission has already been uploaded from it. This sandbox has no DrivenData
-   credentials — the data tab redirects to `/accounts/login/` (re-verified
-   2026-09-25), so the answer cannot be read from here.
+   submission has already been uploaded from it.
 2. **Whether the weekly allowance has already been consumed this week**, and with
    which files. The submission history is only visible when signed in.
-3. **Confirmation that the account holder is eligible** under rules §1.3 — a U.S.
-   citizen or permanent resident (or a U.S.-incorporated entity with a
-   U.S.-citizen/permanent-resident captain). Nothing else in this repo can be
-   completed honestly without that confirmation, because an ineligible winner is
-   disqualified however good the model is.
+3. **Confirmation that the account holder is eligible** under rules §1.3.
+4. **How many of the eleven repositories are deliberate** and which are artefacts
+   of earlier sessions. Only the account holder can say; this audit reports the
+   state, it does not guess intent.
 
 ## Recommended remediation
 
 1. Keep `6GEMSDOE` (this repo) as the only entry and the only published site.
-2. **Archive** the other ten repositories, then delete them once the pinned data
-   bridge and the evidence files have been copied here (the bridge parts and
-   `data/evidence/` evidence are the only irreplaceable content; the 419 MB official
-   raster is reproducible from the pinned mirror by
-   `scripts/fetch_and_verify_data.py`).
-3. Record, in one place, which DrivenData account is the entry and which submission
-   is selected as final — this repo's `SUBMISSION_GUIDE.md` has the fixed slot for
-   that record.
+2. Move a first-party copy of the pinned data bridge into this repo (or download
+   the three official files from the data tab while signed in), **then** archive
+   the other ten repositories and delete them once the data path is confirmed.
+3. Record, in `SUBMISSION_GUIDE.md`, which DrivenData account is the entry and
+   which submission file is selected as final.

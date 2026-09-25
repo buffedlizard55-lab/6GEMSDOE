@@ -5,7 +5,8 @@ Where a claim originates in the task brief rather than in an official document, 
 is said so explicitly. **Claims that failed verification are recorded here, not
 quietly dropped.**
 
-Checked 2026-09-25 (UTC). The rules PDF was fetched at
+Checked 2026-09-25 (UTC) and re-checked later the same day after the modelling work
+below. The rules PDF was fetched at
 <https://www.nlr.gov/docs/fy26osti/96647.pdf>, which redirects to `docs.nlr.gov`;
 the document is titled "Geologic Enhanced Mapping System (GEMS) Prize Official
 Rules", September 2026.
@@ -59,7 +60,8 @@ wrong figure is exactly what this project is trying to avoid.
 | "The reference solution implements the metric" (implied by "benchmark against the reference solution") | **False.** The notebook uses `segmentation_models_pytorch.losses.TverskyLoss` as a training loss only. It contains no distance-weighted scoring code. The metric here had to be implemented from the published formula. |
 | "The reference solution uses Monte Carlo cross-validation" (task brief) | **True but misleading.** It is Monte Carlo over *random patch splits* (`np.random.default_rng`, `rng.permutation`), not spatially blocked folds. It leaks along faults. The brief's own instruction — blocked, buffered folds — is the right one and is what we implement. |
 | "The official rasters are committed to the repo as sha256-pinned parts, reassembled into `data/` with every hash re-verified" (task brief) | **True of the sibling repos, not of this one.** This repo (before this session) held only a 10-byte README. The parts and pins were located in `buffedlizard55-lab/GEMSDOE`, re-verified here byte-for-byte, and are re-verified on every placement by `scripts/fetch_and_verify_data.py`. The 419 MB raster is deliberately kept out of git and fetched on demand. |
-| "One account, one repo" (task brief) | **Violated.** 11 GEMS-named repos; GitHub Pages enabled on all 11, so the account publishes 11 challenge URLs. See `ACCOUNT_STATUS.md`. |
+| "One account, one repo" (task brief) | **Violated, re-confirmed later the same day.** 11 GEMS-named repos; `gh api repos/buffedlizard55-lab/<repo>/pages` returns `status = built` for **all 11**; five of them (`GEMSDOE`, `GEMSDOE2`, `GEMSDOE3`, `GEMSDOE4`, `5GEMSDOE`) are complete copies with their own site, `data/` bridge and code, and the remaining five hold only a `README.md`. See `ACCOUNT_STATUS.md`. |
+| The pinned data bridge is a *first-party* copy | **Not yet.** It resolves through `buffedlizard55-lab/GEMSDOE` over `codeload` (`--source codeload`). The bytes are trusted because each part's sha256 matches the pin in `src/gems/spec.py`, not because of which repository served them — but this is a dependency on one of the duplicates that must be replaced before those repositories are deleted. |
 | "Site should be able to generate a TIF … already built and working" (task brief) | **Not in this repo.** It was built in sibling repos; this session built it here from scratch, along with the gate. |
 | The exact submission-form string "Predicted values must be in range [0, 1]" | **Cannot be verified from here** — it only appears on submission, and we have no credentials. The *mechanism* (NaN inside the footprint) is consistent with the platform's documented requirement that NaN is legal only outside the bounds, and the gate is built around it regardless. |
 
@@ -70,15 +72,26 @@ wrong figure is exactly what this project is trying to avoid.
 | Python 3.11.2; no numpy/scipy/rasterio/GDAL/torch preinstalled | `python3 -c "import …"` all failed; installed numpy 2.4.6, scipy 1.17.1, rasterio 1.4.4, scikit-learn 1.9.1, tifffile, pillow |
 | `pip install` requires `--break-system-packages` (PEP 668) | install refused without the flag |
 | Bash egress is allowlisted: `pypi.org` and `github.com` work; `www.drivendata.org`, `www.nlr.gov`, `www.osti.gov`, `raw.githubusercontent.com` do not connect from bash | TLS/SSL errors; the official pages were therefore read through the platform's page fetcher, and repo files via `git`/GitHub API |
-| 2 CPUs, 3 GB RAM, ~20 GB free disk, no GPU | `nproc`, `free`, `df` |
-| Full-resolution 19-band float32 stack does not fit in RAM | 12,279,160 px × 48 channels × 4 B = 2.25 GB, hence the disk-backed memmap |
+| 2 CPUs, **3.9 GB** RAM, ~20 GB free disk, no GPU | `nproc`, `free`, `df` |
+| Full-resolution derived stack does not fit in RAM | 12,279,160 px × 88 channels × 4 B = 4.3 GB, hence the tile-streaming builder and the disk-backed memmap |
+| `codeload.github.com` **does** work where `raw.githubusercontent.com` and `objects.githubusercontent.com` do not (SSL error) | curl: 200 with a 407 MB tarball in 23 s vs `000` for the other two hosts. This is the only reason the pinned data bridge can be fetched from this sandbox at all |
+| Egress to `www.sciencebase.gov` and `drivendata-public-assets.s3.amazonaws.com` is blocked | curl returns `000` / SSL error. Blocks direct retrieval of the 1 m DEM tile list and of the competition's own figure assets |
+| The feature stack rebuild costs ~11 minutes for 88 channels | `scripts/build_features.py`, `build_seconds = 643.1`, 8 row tiles with a 40 px halo |
 
 ## 5. How to re-verify everything in this file
 
 ```bash
+python scripts/fetch_and_verify_data.py --check          # all three official rasters
 python scripts/analysis.py --only spec       # re-measures the pinned constants
 python scripts/analysis.py --only baselines  # exact DTI for the degenerate cases
 python scripts/analysis.py --only bands      # resolves the ambiguous band semantics
-python -m pytest tests/ -q                   # metric + gate + spec tests
+python scripts/build_features.py             # 88-channel stack (disk-backed, ~11 min)
+python scripts/experiment.py --configs baseline,extended  # controlled A/B on blocked folds
+python -m pytest tests/ -q                   # metric + gate + spec + placement tests
 python scripts/validate_submission.py <file> # the hard gate
+
+# the account-status audit, read-only:
+gh repo list buffedlizard55-lab --limit 100 --json name,pushedAt,diskUsage
+gh api repos/buffedlizard55-lab/<repo>/pages --jq '.html_url, .status'
+gh api repos/buffedlizard55-lab/<repo>/contents/ --jq '[.[].name] | join(" ")'
 ```

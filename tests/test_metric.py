@@ -145,3 +145,81 @@ def test_all_ones_matches_brute_force_definition():
 def test_analytic_everywhere_matches_closed_form():
     c = 0.011803
     assert metric.analytic_everywhere_score(c) == pytest.approx(c / (c + 0.2 * (1 - c)))
+
+
+def test_tp_plus_fn_equals_the_ground_truth_count():
+    """Identity used by the placement algebra: FN_w = n_gt - TP_w.
+
+    Follows from the published definitions
+        TP_w = sum_{g in G} max_{x : d<=R} p(x) k(d)
+        FN_w = sum_{g in G} [1 - max_{x : d<=R} p(x) k(d)]
+    so their sum is exactly |G| for any prediction. The reduced form of the
+    metric, DTI = TP_w / (beta*n_gt + alpha*FP_w + (1-beta)*TP_w), depends on
+    it, so it is pinned rather than assumed.
+    """
+    rng = np.random.default_rng(7)
+    g = (rng.random((23, 19)) > 0.85)
+    p = rng.random((23, 19)).astype(np.float64) * (rng.random((23, 19)) > 0.4)
+    c = metric.components(p, g)
+    assert c.tp_w + c.fn_w == pytest.approx(float(g.sum()), rel=1e-9)
+
+
+def test_reduced_form_matches_the_published_formula():
+    """DTI = TP/(TP + a FP + b FN) == TP/(b*n_gt + a FP + (1-b) TP)."""
+    rng = np.random.default_rng(11)
+    g = (rng.random((17, 21)) > 0.8)
+    p = rng.random((17, 21)).astype(np.float64) * (rng.random((17, 21)) > 0.5)
+    c = metric.components(p, g)
+    lhs = c.tp_w / (c.tp_w + metric.ALPHA * c.fp_w + metric.BETA * c.fn_w)
+    rhs = c.tp_w / (metric.BETA * c.n_gt + metric.ALPHA * c.fp_w
+                    + (1.0 - metric.BETA) * c.tp_w)
+    assert lhs == pytest.approx(rhs, rel=1e-12)
+    assert c.dti == pytest.approx(lhs, rel=1e-12)
+
+
+def test_scaling_all_predictions_up_never_lowers_the_score():
+    """p -> lambda*p is monotone increasing in DTI while lambda*p <= 1.
+
+    This is the reason a submission should carry 1.0 on the pixels it selects
+    rather than the model's fractional probability: the beta*n_gt term in the
+    denominator does not scale with p.
+    """
+    rng = np.random.default_rng(3)
+    g = (rng.random((15, 15)) > 0.82)
+    p = rng.random((15, 15)).astype(np.float64) * 0.5
+    prev = -1.0
+    for lam in (0.25, 0.5, 0.75, 1.0, 1.5, 2.0):
+        dti = metric.distance_weighted_tversky(p * lam, g)
+        assert dti > prev
+        prev = dti
+
+
+def test_scoring_on_a_bbox_crop_equals_scoring_on_the_full_grid():
+    """The optimisation scripts/experiment.py relies on.
+
+    Scoring is done on the bounding box of the held-out block dilated by the
+    kernel radius rather than on the full 3730x3292 grid. That is only valid
+    because the ground truth and the prediction are both zero outside the scored
+    block: then no term of TP_w / FP_w / FN_w can involve a pixel outside the
+    crop. This pins that argument instead of leaving it as a comment.
+    """
+    rng = np.random.default_rng(21)
+    g = np.zeros((60, 70), dtype=bool)
+    g[20:40, 25:45] = rng.random((20, 20)) > 0.75      # GT inside a sub-window
+    p = (rng.random((60, 70)) > 0.6).astype(np.float64) * rng.random((60, 70))
+    p[~g] *= 0.3
+    # zero the prediction outside a block that contains all the GT
+    block = np.zeros((60, 70), dtype=bool)
+    block[15:45, 20:50] = True
+    p = np.where(block, p, 0.0)
+
+    full = metric.components(p, g)
+    ys, xs = np.nonzero(block)
+    margin = int(np.ceil(metric.RADIUS_PX)) + 1
+    sl = (slice(max(0, ys.min() - margin), min(60, ys.max() + margin + 1)),
+          slice(max(0, xs.min() - margin), min(70, xs.max() + margin + 1)))
+    crop = metric.components(p[sl], g[sl])
+    assert crop.tp_w == pytest.approx(full.tp_w, rel=1e-9)
+    assert crop.fp_w == pytest.approx(full.fp_w, rel=1e-9)
+    assert crop.fn_w == pytest.approx(full.fn_w, rel=1e-9)
+    assert crop.dti == pytest.approx(full.dti, rel=1e-9)

@@ -27,24 +27,74 @@ GeoDAWN region of Nevada/California.</div>
   very edge of the kernel does it approach 1. Two consequences follow, and both are
   measured rather than asserted in the cross-validation table:</p>
   <ul>
-    <li>Densifying along a line you believe in is not wasteful — a missed
-      ground-truth pixel costs 0.8 of a unit, a nearby prediction collects at most
-      2/3 of a unit of credit.</li>
+    <li>Densifying is cheap <em>where a fault really is</em> — a false positive one
+      pixel off the trace is charged <code>α·(1 − 2/3) = 0.067</code>, not
+      <code>α = 0.2</code> — so a confident trace can be painted generously.</li>
+    <li>But it is only cheap there. Measured, dilation loses: the
+      <code>densified</code> placement scored 0.0803 against 0.0879 for the same
+      surface left alone, and the lineament-enhanced surfaces below lose more. Most
+      pixels a dilation adds are <em>not</em> near a fault, and those are charged the
+      full <code>α</code>. The algebra is a statement about pixels adjacent to a true
+      fault; it is not a licence to thicken the whole map.</li>
     <li>Thinning a true line to every 4th–5th pixel <em>loses</em> score rather than
       trading it away cleanly: skipped ground-truth pixels are then served at ≥ 2 px,
-      where k ≤ 1/3. The 300 m kernel implies nothing about 4–5 px spacing.</li>
+      where k ≤ 1/3, and β = 0.8 makes misses expensive. The 300 m kernel implies
+      nothing about 4–5 px spacing.</li>
   </ul>
+  <h3>The metric, reduced — and what it forces</h3>
+  <p>The competition scores
+  <code>DTI = TP_w / (TP_w + α·FP_w + β·FN_w + ε)</code> with α = 0.2, β = 0.8.
+  From the published definitions, <code>FN_w = Σ_g [1 − max_x p(x)k(d)] =
+  n_gt − TP_w</code> exactly, so the denominator collapses to</p>
+  <pre class="code">DTI = TP_w / ( β·n_gt + α·FP_w + (1−β)·TP_w )</pre>
+  <p>Three consequences, all of them measured in
+  <code>scripts/experiment.py</code> rather than asserted:</p>
+  <ol>
+    <li><strong>The submitted value should be 1.0 on the pixels you select.</strong>
+      The <code>β·n_gt</code> term does not scale with <code>p</code>, so DTI is
+      strictly increasing under <code>p → λ·p</code> for every λ up to the cap. Writing
+      the model's fractional confidence instead measured 0.1119 against 0.1648 for
+      the identical selection at threshold 0.30.</li>
+    <li><strong>Control the budget, not the threshold.</strong> <code>FP_w</code> is an
+      absolute sum over predicted pixels; <code>TP_w</code> and <code>FN_w</code> are
+      per-ground-truth-pixel sums. The optimum therefore depends on how many fault
+      pixels the hidden test set has, which is unknown — so the budget was chosen by
+      minimax regret across ground-truth sizes (see the experiments card).</li>
+    <li><strong>Thinning to 4–5 px spacing is still wrong.</strong> The 300 m kernel
+      is a tolerance, not a spacing instruction: a skipped ground-truth pixel is then
+      served at ≥ 2 px, where <code>k ≤ 1/3</code>, and β = 0.8 makes misses
+      expensive.</li>
+  </ol>
   <h3>Why blocked folds</h3>
   <p>The reference solution draws random patch splits. Faults are spatially
   autocorrelated, so that design puts pixels of the same fault in train and test and
   reports an optimistic number. Here every fold holds out whole blocks plus a 300 m
   buffer, and the buffer is excluded from training as well as from scoring.</p>
+  <h3>The target is not the catalogue, and that is measurable</h3>
+  <p>Both rounds score faults that are <em>missing</em> from the training catalogue
+  (the competition home page confirms spatial overlap between the training faults and
+  the test faults). Two things here push against that gap rather than around it:</p>
+  <ul>
+    <li>The blocked, buffered folds measure whether the model can recover faults it
+      has never seen the neighbourhood of — not whether it can memorise a line.</li>
+    <li>Ground-truth <strong>trace thinning</strong>: whole 8-connected fault traces
+      are deleted from the held-out ground truth and the identical predictions are
+      re-scored. A smaller private fault set is fewer complete faults, not a shredded
+      version of the same ones, so this — rather than pixel subsampling — is the right
+      simulation, and it is what the budget choice is based on.</li>
+  </ul>
   <h3>Where the derived features come from</h3>
-  <table class=""><thead><tr><th>Feature group</th><th>Why</th><th>Basis</th></tr></thead><tbody><tr><td><code>tmi_hg</code>, <code>tmi_vg</code>, <code>iso_grav_anom_hg</code>, <code>iso_grav_anom_vg</code> (provided)</td><td>Horizontal and vertical derivatives of magnetics/gravity — the raw material for edge detection</td><td>provided as bands 3, 9, 18, 11</td></tr><tr><td><code>mag_asa</code>, <code>grav_asa</code> (derived)</td><td>√(hg² + vg²) analytic-signal amplitude; maxima over contacts and faults</td><td>Nabighian 1972; Roest et al. 1992</td></tr><tr><td><code>mag_tilt</code>, <code>grav_tilt</code> (derived)</td><td>atan2(vertical derivative, |horizontal derivative|); zero-crossings track edges, and it is amplitude-normalised so it works across contrasting units</td><td>Miller & Singh 1994</td></tr><tr><td><code>tmi_hgm_computed</code>, <code>mag_anom_hgm_computed</code>, <code>rtp_hgm_computed</code>, <code>grav_hgm_computed</code> (derived)</td><td>Horizontal gradient magnitude computed from the TMI/gravity surfaces themselves, rather than trusting the provided derivative bands</td><td>task brief, first research priority</td></tr><tr><td><code>curv_total</code>, <code>curv_profile</code>, <code>curv_plan</code>, <code>curv_gaussian</code> (derived)</td><td>Curvature of the detrended-elevation surface — fault scarps are breaks in slope, which curvature isolates and slope alone does not</td><td>Zevenbergen & Thorne 1987; Moore et al. 1991</td></tr><tr><td><code>slope_of_slope</code> (derived)</td><td>|∇ slope| — a direct break-in-slope detector for scarp mapping</td><td>task brief, second research priority</td></tr><tr><td><code>lin_elev_*</code>, <code>lin_tmi_*</code>, <code>lin_grav_*</code> (derived)</td><td>Structure-tensor eigenvalue energy, coherence, and orientation cos/sin at two length scales — a lineament detector that does not need a bespoke Hough/CNN stack</td><td>Weickert 1998; Bigun & Granlund 1987</td></tr><tr><td><code>x_geod_shearrate__geod_dilaterate</code>, <code>x_cond_surf__depth_to_base_surf</code>, <code>x_ieq_n100a15__deq_n100a15</code> (derived)</td><td>Explicit products so agreement between strain rate, conductivity and seismicity can be learned rather than assumed</td><td>task brief, third research priority</td></tr></tbody></table>
+  <table class=""><thead><tr><th>Feature group</th><th>Why</th><th>Basis</th></tr></thead><tbody><tr><td><code>tmi_hg</code>, <code>tmi_vg</code>, <code>iso_grav_anom_hg</code>, <code>iso_grav_anom_vg</code> (provided)</td><td>Horizontal and vertical derivatives of magnetics/gravity — the raw material for edge detection</td><td>provided as bands 3, 9, 18, 11</td></tr><tr><td><code>mag_asa</code>, <code>grav_asa</code> (derived)</td><td>√(hg² + vg²) analytic-signal amplitude; maxima over contacts and faults</td><td>Nabighian 1972; Roest et al. 1992</td></tr><tr><td><code>mag_tilt</code>, <code>grav_tilt</code> (derived)</td><td>atan2(vertical derivative, |horizontal derivative|); zero-crossings track edges, and it is amplitude-normalised so it works across contrasting units</td><td>Miller & Singh 1994</td></tr><tr><td><code>tmi_hgm_computed</code>, <code>mag_anom_hgm_computed</code>, <code>rtp_hgm_computed</code>, <code>grav_hgm_computed</code> (derived)</td><td>Horizontal gradient magnitude computed from the TMI/gravity surfaces themselves, rather than trusting the provided derivative bands</td><td>task brief, first research priority</td></tr><tr><td><code>curv_total</code>, <code>curv_profile</code>, <code>curv_plan</code>, <code>curv_gaussian</code> (derived)</td><td>Curvature of the detrended-elevation surface — fault scarps are breaks in slope, which curvature isolates and slope alone does not</td><td>Zevenbergen & Thorne 1987; Moore et al. 1991</td></tr><tr><td><code>slope_of_slope</code> (derived)</td><td>|∇ slope| — a direct break-in-slope detector for scarp mapping</td><td>task brief, second research priority</td></tr><tr><td><code>lin_elev_*</code>, <code>lin_tmi_*</code>, <code>lin_grav_*</code> (derived)</td><td>Structure-tensor eigenvalue energy, coherence, and orientation cos/sin at two length scales — a lineament detector that does not need a bespoke Hough/CNN stack</td><td>Weickert 1998; Bigun & Granlund 1987</td></tr><tr><td><code>x_geod_shearrate__geod_dilaterate</code>, <code>x_cond_surf__depth_to_base_surf</code>, <code>x_ieq_n100a15__deq_n100a15</code> (derived)</td><td>Explicit products so agreement between strain rate, conductivity and seismicity can be learned rather than assumed</td><td>task brief, third research priority</td></tr><tr><td><code>hgm_*</code>, <code>asa_*</code>, <code>tdr_*</code>, <code>vg_*</code> at σ = 1.5 and 3 px (derived)</td><td>Horizontal-gradient magnitude, analytic-signal amplitude and tilt derivative recomputed at matched smoothing scales, on TMI and the isostatic gravity anomaly. Source depth is unknown, so a single-scale edge operator only sees one band of the structural spectrum</td><td>Verduzco et al. 2004 (tilt of the horizontal gradient); Wijns et al. 2005 (theta map); Miller & Singh 1994</td></tr><tr><td><code>curv_total_s*</code>, <code>curv_plan_s*</code>, <code>slope_of_slope_s*</code> at σ = 1.5 and 3 px (derived)</td><td>Curvature and break-in-slope at scarp scale (150 m) and flexure scale (300 m); raw second derivatives of a 100 m layer are noise-dominated</td><td>Zevenbergen & Thorne 1987; Moore et al. 1991</td></tr><tr><td><code>std_tmi_s3</code>, <code>std_det_elev_s3</code>, <code>std_iso_grav_anom_s3</code> (derived)</td><td>Local standard deviation over a Gaussian window — fault and damage zones are texturally rougher than the surrounding block, independent of the sign of the anomaly</td><td>textural contrast; standard practice in terrain analysis</td></tr></tbody></table>
+  <p class="note"><strong>Negative result, recorded.</strong> The forty appended
+  multi-scale channels cost a 643-second rebuild and moved blocked-CV DTI by
+  essentially nothing at the round-1 hyperparameters (0.1729 with them, 0.1730
+  without). They are kept because they were never worse, but the honest reading is
+  that on this 100 m grid the model is limited by the label set, not by the number of
+  derivative channels.</p>
 </div>
 <div class="card">
   <h2>Sources, for manual review</h2>
-  <table class=""><thead><tr><th>What it supplies</th><th>Reference</th><th>Link</th></tr></thead><tbody><tr><td>GeoDAWN airborne magnetic and radiometric surveys (the feature backbone)</td><td>Glen & Earney 2024, USGS data release</td><td>https://doi.org/10.5066/P93LGLVQ</td></tr><tr><td>INGENIOUS Great Basin Regional Dataset Compilation (the training labels)</td><td>Ayling et al. 2022, Geothermal Data Repository</td><td>https://doi.org/10.15121/1881483</td></tr><tr><td>Automatic fault mapping in remote optical images and topographic data with deep learning — cited by the competition's own About page</td><td>Mattéo et al. 2021, JGR Solid Earth</td><td>https://doi.org/10.1029/2020JB021269</td></tr><tr><td>Using deep learning to map Quaternary faults in Western USA — cited by the competition's own About page</td><td>Hermant, Kiersnowski & Bellanger 2025, 50th Workshop on Geothermal Reservoir Engineering (Stanford)</td><td>https://pangea.stanford.edu/ERE/db/GeoConf/papers/SGW/2025/Hermant.pdf</td></tr><tr><td>Tilt-angle edge detection for potential fields</td><td>Miller & Singh 1994, Geophysics 62(1)</td><td>https://doi.org/10.1190/1.1444129</td></tr><tr><td>Analytic-signal amplitude and its use in locating edges</td><td>Roest, Verhoef & Pilkington 1992, Geophysics 57(1)</td><td>https://doi.org/10.1190/1.1443174</td></tr><tr><td>The analytic signal of two-dimensional magnetic bodies</td><td>Nabighian 1972, Geophysics 37(3)</td><td>https://doi.org/10.1190/1.1440276</td></tr><tr><td>Local orientation / structure tensor for lineament detection</td><td>Weickert 1998, Computer Vision and Applications; Bigun & Granlund 1987</td><td>https://doi.org/10.1109/TPAMI.1987.4767965</td></tr><tr><td>Curvature of terrain surfaces from gridded elevation</td><td>Zevenbergen & Thorne 1987, Math. Geol. 19(2); Moore, Grayson & Ladson 1991</td><td>https://doi.org/10.1007/BF00893750</td></tr><tr><td>Distance-weighted / Tversky index family</td><td>Tversky 1977, Psychological Review 84(4); Salehi et al. 2017 (Tversky loss)</td><td>https://doi.org/10.1037/0033-295X.84.4.327</td></tr></tbody></table>
+  <table class=""><thead><tr><th>What it supplies</th><th>Reference</th><th>Link</th></tr></thead><tbody><tr><td>GeoDAWN airborne magnetic and radiometric surveys (the feature backbone)</td><td>Glen & Earney 2024, USGS data release</td><td>https://doi.org/10.5066/P93LGLVQ</td></tr><tr><td>INGENIOUS Great Basin Regional Dataset Compilation (the training labels)</td><td>Ayling et al. 2022, Geothermal Data Repository</td><td>https://doi.org/10.15121/1881483</td></tr><tr><td>Automatic fault mapping in remote optical images and topographic data with deep learning — cited by the competition's own About page</td><td>Mattéo et al. 2021, JGR Solid Earth</td><td>https://doi.org/10.1029/2020JB021269</td></tr><tr><td>Using deep learning to map Quaternary faults in Western USA — cited by the competition's own About page</td><td>Hermant, Kiersnowski & Bellanger 2025, 50th Workshop on Geothermal Reservoir Engineering (Stanford)</td><td>https://pangea.stanford.edu/ERE/db/GeoConf/papers/SGW/2025/Hermant.pdf</td></tr><tr><td>Tilt-angle edge detection for potential fields</td><td>Miller & Singh 1994, Geophysics 62(1)</td><td>https://doi.org/10.1190/1.1444129</td></tr><tr><td>Total horizontal derivative of the tilt angle as an edge detector</td><td>Verduzco, Fairhead, Green & MacKenzie 2004, The Leading Edge 23(2): 116-119</td><td>https://doi.org/10.1190/1.1651454</td></tr><tr><td>Theta map — the analytic-signal-normalised horizontal gradient, which balances shallow and deep sources</td><td>Wijns, Perez & Kowalczyk 2005, Geophysics 70(4): L39-L43</td><td>https://doi.org/10.1190/1.1988184</td></tr><tr><td>Analytic-signal amplitude and its use in locating edges</td><td>Roest, Verhoef & Pilkington 1992, Geophysics 57(1)</td><td>https://doi.org/10.1190/1.1443174</td></tr><tr><td>The analytic signal of two-dimensional magnetic bodies</td><td>Nabighian 1972, Geophysics 37(3)</td><td>https://doi.org/10.1190/1.1440276</td></tr><tr><td>Local orientation / structure tensor for lineament detection</td><td>Weickert 1998, Computer Vision and Applications; Bigun & Granlund 1987</td><td>https://doi.org/10.1109/TPAMI.1987.4767965</td></tr><tr><td>Curvature of terrain surfaces from gridded elevation</td><td>Zevenbergen & Thorne 1987, Math. Geol. 19(2); Moore, Grayson & Ladson 1991</td><td>https://doi.org/10.1007/BF00893750</td></tr><tr><td>Distance-weighted / Tversky index family</td><td>Tversky 1977, Psychological Review 84(4); Salehi et al. 2017 (Tversky loss)</td><td>https://doi.org/10.1037/0033-295X.84.4.327</td></tr></tbody></table>
   <p class="note">The two deep-learning fault-mapping papers were cited by the
   competition's own About page; the potential-field edge methods are the standard
   operators for exactly the magnetic and gravity layers this competition provides.</p>

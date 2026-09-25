@@ -19,8 +19,9 @@ beta = 0.8 (false negatives), 300 m triangular kernel.
 **Ends:** Dec. 3, 2026, 11:59 p.m. UTC.
 
 > ### ⚠ One account, one repo, one site — currently VIOLATED upstream
-> The hosting account holds **11** GEMS-named repositories and publishes **6** Pages
-> sites for this challenge. This repository is designated the single canonical
+> The hosting account holds **11** GEMS-named repositories, five of them complete
+> copies of this project, and GitHub Pages is enabled and built on **all 11**. This
+> repository is designated the single canonical
 > entry; nothing here creates a second registration, site or entry. The full audit,
 > the rule citations and the remediation steps are in
 > **[ACCOUNT_STATUS.md](ACCOUNT_STATUS.md)**. Read it before uploading anything.
@@ -60,8 +61,9 @@ src/gems/cv.py          spatially blocked, buffered cross-validation
 
 scripts/fetch_and_verify_data.py   place the official rasters, verify every sha256
 scripts/validate_submission.py     THE HARD GATE (run before any upload)
-scripts/build_features.py          48-channel derived feature stack (disk-backed)
+scripts/build_features.py          88-channel derived feature stack (disk-backed)
 scripts/analysis.py                baselines, band-identity tests, blocked CV
+scripts/experiment.py              controlled A/B: does a change raise the score?
 scripts/build_submission.py        train + predict + place + gate the GeoTIFF
 scripts/build_site.py              regenerate the published site from evidence
 
@@ -78,7 +80,9 @@ python scripts/fetch_and_verify_data.py       # official rasters, every sha256 v
 python scripts/analysis.py --only spec,baselines,bands
 python scripts/build_features.py
 python scripts/analysis.py --only cv
-python scripts/build_submission.py
+python scripts/experiment.py --configs baseline,extended   # controlled comparison
+python scripts/build_submission.py --tag hgb88-topk03 \
+       --strategy "topk_hard@0.03" --n-channels 88
 python -m pytest tests/ -q
 python scripts/build_site.py
 ```
@@ -90,4 +94,10 @@ of known faults. Both prize rounds are scored against *private, newly identified
 faults, so no number here is a leaderboard prediction, and we state that wherever a
 number appears. The model shipped here is a gradient-boosting classifier over sampled
 pixels — not the reference solution's ResNet-18 U-Net — because this host has 2 CPUs,
-3 GB of RAM and no GPU. See [LIMITATIONS.md](LIMITATIONS.md).
+4 GB of RAM and no GPU. See [LIMITATIONS.md](LIMITATIONS.md).
+
+**Blocked-CV proxy for the shipped file: 0.1698 mean DTI** against the public
+catalogue, versus 0.1119 for the placement used previously. Both are proxies measured
+on held-out spatial blocks; neither is a leaderboard value. See
+[EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md) for how that improvement was obtained
+and why it does not change the fact that the real test set is unmapped faults.

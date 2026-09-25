@@ -6,6 +6,18 @@
 data/training_features.tif
 
 # ---------------------------------------------------------------------------
+# Bridge transport parts (419 MB once reassembled) and the bridge copies of the
+# two small rasters. Not committed, for the same reason as the reassembled
+# raster itself: they are reproducible from the pinned mirror by
+# scripts/fetch_and_verify_data.py, and every hash is re-verified on placement.
+# Only data/bridge/manifest.json is committed — it is 4 KB and it is the record
+# of what was transported.
+# ---------------------------------------------------------------------------
+data/bridge/*.part-*
+data/bridge/existing_faults.tif
+data/bridge/example_submission.tif
+
+# ---------------------------------------------------------------------------
 # Derived artifacts: 12,279,160 px x 48 channels x 4 B = 2.25 GB + a 12 MB mask.
 # Rebuilt in ~2 minutes by scripts/build_features.py (streaming, tile by tile).
 # ---------------------------------------------------------------------------

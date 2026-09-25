@@ -49,7 +49,8 @@ def load_truth():
 
 
 def train_model(mm_path: Path, n_channels: int, gt: np.ndarray,
-                footprint: np.ndarray, max_neg: int, seed: int = 7):
+                footprint: np.ndarray, max_neg: int, seed: int = 7,
+                iters: int = 300):
     from sklearn.ensemble import HistGradientBoostingClassifier
 
     mm = np.load(mm_path, mmap_mode="r")
@@ -63,12 +64,12 @@ def train_model(mm_path: Path, n_channels: int, gt: np.ndarray,
     X = np.asarray(mm[rows, cols, :n_channels], dtype=np.float32)
     y = gt.ravel()[sel].astype(np.uint8)
     model = HistGradientBoostingClassifier(
-        max_iter=300, learning_rate=0.08, max_leaf_nodes=31,
+        max_iter=iters, learning_rate=0.08, max_leaf_nodes=31,
         min_samples_leaf=40, l2_regularization=1.0, random_state=seed,
         early_stopping=False)
     model.fit(X, y)
     return model, {"n_pos": int(pos.size), "n_neg": int(n_neg),
-                   "n_features": int(X.shape[1])}
+                   "n_features": int(X.shape[1]), "max_iter": int(iters)}
 
 
 def predict_full(mm_path: Path, model, footprint: np.ndarray, n_channels: int,
@@ -93,6 +94,12 @@ def main() -> int:
     ap.add_argument("--features", default=str(EV / "features.f32.npy"))
     ap.add_argument("--features-meta", default=str(EV / "features_meta.json"))
     ap.add_argument("--max-neg", type=int, default=400_000)
+    ap.add_argument("--iters", type=int, default=300)
+    ap.add_argument("--n-channels", type=int, default=0,
+                    help="use only the first N channels of the stack "
+                         "(0 = all). The blocked-CV comparison found the extra "
+                         "multi-scale channels did not improve the score, so the "
+                         "shipped model uses the validated subset.")
     ap.add_argument("--threshold", type=float, default=0.10)
     ap.add_argument("--strategy", default="densified")
     ap.add_argument("--out-dir", default=str(DOWNLOADS))
@@ -101,15 +108,19 @@ def main() -> int:
     t0 = time.time()
     meta = json.loads(Path(args.features_meta).read_text())
     channels = meta["channels"]
+    n_channels = args.n_channels if args.n_channels > 0 else len(channels)
+    if n_channels > len(channels):
+        raise SystemExit(f"--n-channels {n_channels} exceeds the stack "
+                         f"({len(channels)} channels)")
     gt, footprint = load_truth()
     print(f"[{time.time()-t0:6.1f}s] footprint {int(footprint.sum())} px, "
           f"positives {int((gt & footprint).sum())}")
 
-    model, train_info = train_model(Path(args.features), len(channels), gt,
-                                    footprint, args.max_neg)
+    model, train_info = train_model(Path(args.features), n_channels, gt,
+                                    footprint, args.max_neg, iters=args.iters)
     print(f"[{time.time()-t0:6.1f}s] trained on {train_info}")
 
-    prob = predict_full(Path(args.features), model, footprint, len(channels))
+    prob = predict_full(Path(args.features), model, footprint, n_channels)
     print(f"[{time.time()-t0:6.1f}s] predicted full footprint; "
           f"max={prob.max():.4f} mean_pos={prob[prob>0].mean():.4f}")
 
@@ -135,11 +146,13 @@ def main() -> int:
         "gate": report.as_dict(),
         "strategy": args.strategy,
         "threshold": args.threshold,
-        "model": "HistGradientBoostingClassifier(max_iter=300, lr=0.08, "
-                 "max_leaf_nodes=31, min_samples_leaf=40)",
+        "model": (f"HistGradientBoostingClassifier(max_iter={args.iters}, "
+                  "lr=0.08, max_leaf_nodes=31, min_samples_leaf=40, "
+                  "l2_regularization=1.0)"),
         "train": {k: (v.item() if hasattr(v, "item") else v)
                   for k, v in train_info.items()},
-        "n_channels": len(channels),
+        "n_channels": int(n_channels),
+        "channels_available": len(channels),
         "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }, indent=2, default=str) + "\n")
 

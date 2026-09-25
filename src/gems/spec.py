@@ -142,7 +142,6 @@ URLS = {
     "reference_solution": "https://github.com/drivendataorg/gems-prize-reference-solution",
     "geodawn_dataset": "https://doi.org/10.5066/P93LGLVQ",
     "ingenious_compilation": "https://doi.org/10.15121/1881483",
-    "margin_e1": 14_736_206,  # end of the "Initial Prize Round" deadline window
 }
 
 

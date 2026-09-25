@@ -126,3 +126,38 @@ def test_densify_never_lowers_a_value_and_never_leaks():
     assert (out >= prob - 1e-6).all()
     assert out[25, 21] == pytest.approx(0.9)
     assert out[24, 20] == pytest.approx(0.9)
+
+
+def test_topk_mask_selects_exactly_the_requested_budget():
+    rng = np.random.default_rng(5)
+    p = rng.random((40, 40)).astype(np.float32)
+    valid = np.ones((40, 40), dtype=bool)
+    valid[0, 0] = False
+    for frac in (0.01, 0.05, 0.25):
+        m = placement.topk_mask(p, valid, frac)
+        n_valid = int(valid.sum())
+        expected = max(1, int(round(frac * n_valid)))
+        assert int(m.sum()) >= expected
+        assert not (m & ~valid).any()
+        # everything selected is at least as large as everything not selected
+        assert p[m].min() >= p[~m & valid].max()
+
+
+def test_hard_strategy_is_binary_and_inside_the_mask():
+    rng = np.random.default_rng(9)
+    prob = rng.random((30, 30)).astype(np.float32)
+    valid = np.zeros((30, 30), dtype=bool)
+    valid[3:27, 3:27] = True
+    out = placement.get_strategy("hard@0.4", prob, valid, threshold=0.4)
+    assert set(np.unique(out)) <= {0.0, 1.0}
+    assert not (out > 0)[~valid].any()
+    assert int((out > 0).sum()) == int((prob[valid] >= 0.4).sum())
+
+
+def test_topk_hard_strategy_respects_the_budget():
+    rng = np.random.default_rng(13)
+    prob = rng.random((50, 50)).astype(np.float32)
+    valid = np.ones((50, 50), dtype=bool)
+    out = placement.get_strategy("topk_hard@0.1", prob, valid, threshold=0.0)
+    assert set(np.unique(out)) <= {0.0, 1.0}
+    assert int((out > 0).sum()) == 250

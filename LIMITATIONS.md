@@ -21,22 +21,25 @@ know that it is well-formed, reproducible, and built on the right target.
 
 ## 2. No leaderboard feedback is available from here
 
-The data tab and the submit form require a DrivenData session; this sandbox has none
-(verified: `/data/` redirects to `/accounts/login/`). We therefore cannot see prior
-submissions, remaining weekly allowance, or any public score. The rules also require
-the final submission to be chosen *without* knowledge of private scores (§3.6.2), so
-this is not a blocker for correctness — but it does mean we are flying blind on
-relative performance.
+A feedback channel *exists* — the competition splits the new-fault set into a public
+and a private test set and shows public-test performance on the leaderboard while the
+competition runs (page 967; §3.6.1) — but it needs a DrivenData session, and this
+sandbox has none (verified: `/data/` redirects to `/accounts/login/`). We therefore
+cannot see prior submissions, remaining weekly allowance, or any public score. The
+rules also require the final submission to be chosen *without* knowledge of private
+scores (§3.6.2), and the problem page warns that public scores "may not be the same as
+the final scores on the private leaderboard", so public feedback is a weak signal at
+best. It does mean we are flying blind on relative performance.
 
-## 3. Compute: no GPU, 2 CPUs, 3 GB RAM
+## 3. Compute: no GPU, 2 CPUs, 4 GB RAM
 
 * The reference solution is a ResNet-18 U-Net trained over 5 Monte-Carlo folds on
   128 × 128 patches. That is not trainable here: PyTorch is not installed, there is no
   GPU, and a full-resolution 19-band float32 stack (933 MB) plus derived channels
-  (2.25 GB total) already exceeds RAM — hence the tile-streaming feature builder and
-  the disk-backed feature memmap.
+  (4.3 GB total for the 88-channel stack) already exceeds RAM — hence the
+  tile-streaming feature builder and the disk-backed feature memmap.
 * The shipped model is `HistGradientBoostingClassifier` over **sampled** pixels
-  (all positives in the fold plus a sampled negative pool) on 48 channels. It is
+  (all 60,988 positives plus a 400,000-negative sample) on 88 channels. It is
   honest, reproducible and fast; it is also weaker than a full U-Net, and the class
   imbalance is handled by sampling rather than by a loss function.
 * Training at full capacity needs an external GPU host (or a GitHub Actions runner
@@ -54,7 +57,9 @@ egress policy blocks, and the downloads would not fit the workspace.
 **Impact:** a genuine topographic signal at 1 m — the sharpest expression of fault
 scarps — is missing. The 100 m detrended-elevation curvature features partially
 compensate but cannot replace it. This is probably the single largest untapped
-accuracy lever available.
+accuracy lever available. (Re-verified 2026-09-25: egress to `prd-tnm.s3.amazonaws.com`
+and to `www.sciencebase.gov` is blocked from this sandbox, so it cannot be fetched
+here at all; it needs a different host.)
 
 ## 5. Magnetic/gravity edge products partly duplicate what is provided
 
@@ -66,6 +71,16 @@ information. `scripts/analysis.py --only bands` measures this empirically (corre
 and median absolute difference per candidate pair) so the redundancy is documented
 rather than assumed.
 
+**Measured consequence (2026-09-25).** Appending forty genuinely new multi-scale
+channels — horizontal-gradient magnitude at σ = 1.5/3/6 px on five surfaces,
+analytic-signal amplitude and tilt derivative at matched scales, multi-scale
+curvature, local texture, structure tensor on conductivity and RTP — moved blocked-CV
+DTI by essentially nothing at the round-1 hyperparameters (0.1729 with them vs 0.1730
+without, on identical folds). They are kept because they were never worse and are
+slightly better at the shipped hyperparameters, but the honest reading is that on this
+100 m grid the score is limited by the label set, not by the number of derivative
+channels.
+
 ## 6. Placement is measured only against the catalogue
 
 The metric-aware argument in `src/gems/placement.py` is derived from the published
@@ -73,6 +88,21 @@ formula and is exact *given* a probability surface. Whether densifying beats thi
 *in practice* is measured on the catalogue, where the model has an easier job than it
 will on unmapped faults. The geometry result (a 300 m kernel does not imply 4–5 px
 spacing) is metric algebra and holds regardless.
+
+The value and budget results are stronger than that, because they are algebra plus
+measurement rather than measurement alone:
+
+* writing `1.0` instead of the model probability is *provably* better (DTI is strictly
+  increasing under `p → λ·p`, because the `β·n_gt` term does not scale), and it
+  measured +36% to +49% depending on the threshold;
+* the budget choice is hedged against the unknown size of the private test set by
+  re-scoring identical predictions against ground truth thinned to whole fault traces.
+  The 3% budget is the minimax-regret choice on two independent blockings (4×4 and
+  6×6), giving up 3% in the best case to hold the worst case to 5%.
+
+What is *not* hedged is the harder thing: the private faults are genuinely unmapped,
+so our per-fault recall on them will be lower than on catalogue faults, and no amount
+of placement algebra fixes that.
 
 ## 7. Phase 2 deliverables are only partly done
 

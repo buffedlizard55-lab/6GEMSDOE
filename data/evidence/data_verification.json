@@ -1,11 +1,11 @@
 {
   "ok": true,
-  "check_only": true,
+  "check_only": false,
   "data_dir": "/home/user/6GEMSDOE/data",
   "files": [
     {
       "file": "training_features.tif",
-      "status": "verified",
+      "status": "placed",
       "bytes": 418912844,
       "sha256": "4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5",
       "expected_sha256": "4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5"

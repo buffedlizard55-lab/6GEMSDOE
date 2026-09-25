@@ -2,20 +2,19 @@
 
 ## The two-click path
 
-1. **Download** `downloads/gems6_*.tif` (the newest file is linked from the first
-   card on <https://buffedlizard55-lab.github.io/6GEMSDOE/>).
+1. **Download** `downloads/gems6_hgb88-topk03_33cec71ff0.tif` (the link is the first
+   thing on <https://buffedlizard55-lab.github.io/6GEMSDOE/>).
 2. **Upload** it at <https://www.drivendata.org/competitions/306/competition-doe-gems/>
-   → *Submit* → *Make new submission*, pasting the methodology comment shown on the
-   site.
+   → *Submit* → *Make new submission*, pasting the methodology note below.
 
 Before either step, run the gate locally:
 
 ```bash
-python scripts/validate_submission.py downloads/<file>.tif
+python scripts/validate_submission.py downloads/gems6_hgb88-topk03_33cec71ff0.tif
 ```
 
 Exit code 0 means the file satisfies every published format rule. Non-zero means do
-**not** upload it.
+**not** upload it. Re-run in this checkout on 2026-09-25: **PASS, 13/13**.
 
 ## Why the file must pass the gate first
 
@@ -44,24 +43,35 @@ gate is provably catching the right condition rather than a proxy for it.
 ## Naming and the comment field
 
 Files are content-addressed: `gems6_<strategy>_<sha256[:10]>.tif`. The strategy tag
-records the placement rule (currently `hgb48-thr030`), so attempts can be told apart
-later without opening them. The submission comment should describe **our single best
-chosen candidate**, not a batch of parallel arms — the rules allow only one final
-submission, and the comment is what a reviewer reads.
+records the placement rule, so attempts can be told apart later without opening them.
 
-Suggested comment (regenerate from `data/evidence/submission_report.json` if the file
-changes):
+| Field | Value |
+|---|---|
+| Current file | `downloads/gems6_hgb88-topk03_33cec71ff0.tif` |
+| sha256 | `33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab` |
+| Bytes | 1,652,883 |
+| Strategy tag | `hgb88-topk03` = HistGradientBoosting, 88 channels, top 3% of the footprint written as 1.0 |
+| Predicted pixels | 155,021 (3.00% of the 5,167,373-px footprint) |
+| Distinct values | exactly `0.0` and `1.0` |
+| Superseded file | `gems6_hgb48-thr030_01be9644f2.tif`, sha256 `01be9644f2ec0df9324cfd36ef516bd35a3456b9164b30995ba66e9e1c63be43` — 0.1119 blocked-CV, removed from `downloads/` so only one file is offered |
 
-> One entry. HistGradientBoosting on 48 channels (19 official GeoDAWN/USGS bands plus
-> derived horizontal-gradient, tilt, analytic-signal, curvature, break-in-slope and
-> structure-tensor lineament features), trained on all catalogue fault pixels plus a
-> sampled negative pool, > scored with spatially blocked and buffered folds (300 m
-> buffer). Placement chosen by measured blocked-CV sweep: the probability surface is
-> binarised at the CV-optimal threshold of 0.30 (blocked mean DTI
-> 0.1119 against the public catalogue, a proxy — the real
-> test set is private). Thinning predictions to the brief's 4-5 px spacing scored
-> worst (0.0621) and is not used. File sha256
-> `01be9644f2ec0df9…`; format verified by scripts/validate_submission.py.
+**Suggested comment** (this is the one to paste — it describes our single chosen
+candidate, not a batch):
+
+> One entry. Probability surface from HistGradientBoosting over 88 channels — the 19
+> official GeoDAWN/USGS bands plus derived horizontal-gradient magnitude,
+> analytic-signal amplitude, tilt derivative, multi-scale curvature, break-in-slope
+> and structure-tensor lineament features — trained on all catalogue fault pixels plus
+> 400k sampled negatives, validated on spatially blocked, buffered folds (300 m
+> buffer). The submission keeps the top 3% of the footprint by predicted probability
+> and writes 1.0 on those pixels: the published metric reduces to
+> DTI = TP_w/(0.8·n_gt + 0.2·FP_w + 0.2·TP_w), which is strictly increasing in the
+> predicted value, so fractional confidence gives score away. The budget is the
+> minimax-regret choice across ground-truth sizes (worst-case loss 5% vs 13% for the
+> 5% budget that leads on the full catalogue). Blocked-CV proxy DTI 0.1698 against
+> the public catalogue — a proxy, not a leaderboard value. Format verified by
+> scripts/validate_submission.py (13/13 checks incl. NaN-inside-footprint), file
+> sha256 `33cec71ff0…`.
 
 ## The one-entry record — FILL THIS IN (human, with credentials)
 
@@ -77,11 +87,13 @@ changes):
 | Date/time selected (UTC) | `_pending_` |
 | Generative-AI disclosure statement written? | `_pending — required by rules §3.2_` |
 | Winning Model Documentation Template completed? | `_pending — required for finalists, §3.5_` |
+| Eligibility confirmed (rules §1.3)? | `_pending — U.S. citizen/permanent resident, not a Federal employee_` |
 
 ## Reminder on the duplication flag
 
 Do not upload from any other repository or site. The hosting account currently holds
-eleven GEMS-named repositories with GitHub Pages enabled on all of them, for this
-one competition; see `ACCOUNT_STATUS.md`. This repository is the designated single entry,
-and the rules' due-diligence and return-of-funds terms (A.12, A.16) are the reason the
-duplication must be cleaned up rather than left in place.
+eleven GEMS-named repositories with GitHub Pages enabled on all of them, five of them
+complete copies of this project; see `ACCOUNT_STATUS.md`. This repository is the
+designated single entry, and the rules' due-diligence and return-of-funds terms
+(A.12, A.16) are the reason the duplication must be cleaned up rather than left in
+place.
