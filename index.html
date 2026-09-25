@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GEMS Prize — 6GEMSDOE entry</title>
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<header><div class="wrap">
+<h1>GEMS Prize — 6GEMSDOE entry</h1>
+<div class="sub">DOE GEMS Prize (Geologic Enhanced Mapping System) —
+one entry, one repo, one site. Predict per-pixel fault probability across the
+GeoDAWN region of Nevada/California.</div>
+<nav><a href="index.html" class="on">Overview</a><a href="verification.html">Line-by-line verification</a><a href="research.html">Research & method</a></nav>
+</div></header>
+<main><div class="wrap">
+
+<div class="card flag">
+  <h2>⚠ Account / repo status — FLAGGED FOR REVIEW</h2>
+  <p>The competition rules cap <strong>one entry per entity</strong>: up to three
+  submissions per week for feedback, and <strong>exactly one final submission</strong>
+  scored in both prize rounds
+  (<a href="https://www.nlr.gov/docs/fy26osti/96647.pdf">rules PDF</a> §3.4, §3.5,
+  §3.6.2; single-entity awards in Appendix A.3).</p>
+  <p>An audit of the hosting account on 2026-09-25 found rules-relevant duplication:</p>
+  <ul>
+    <li><strong>11</strong> repositories whose names reference this one competition
+      (<code>GEMSDOE</code>, <code>GEMSDOE2</code>, <code>GEMSDOE3</code>,
+      <code>GEMSDOE4</code>, <code>5GEMSDOE</code>, <code>6GEMSDOE</code>,
+      <code>7GEMSDOE</code>, <code>8GEMSDOE</code>, <code>GEMSDOE9</code>,
+      <code>GEMSDOE10</code>, <code>11GEMSDOE</code>).</li>
+    <li><strong>Four</strong> of them are substantial (30, 22, 25 and 15 commits, with
+      committed data bridges and predictions).</li>
+    <li><strong>GitHub Pages is enabled on all eleven</strong>, so this one account
+      publishes eleven challenge URLs (the four substantive repos have live, built
+      sites; the rest serve a README-only stub).</li>
+  </ul>
+  <p><strong>This repository is the one canonical entry.</strong> Nothing here creates
+  a second registration, a second site or a second entry, and no submission should be
+  uploaded from any other copy. The other copies are not scoring arms of an experiment
+  — they are duplicates of one project, and the eligibility and anti-fraud terms
+  (Appendix A.12 due diligence and risk review; A.16 return of funds) are written to
+  catch exactly the practice of spreading one test across multiple sites. Recommended
+  action: keep this repo, and delete or archive the other ten.</p>
+</div>
+<div class="card hero-card">
+  <h2>Download the submission file</h2>
+  <p class="lead">This is the single file for our single entry. It has been through
+  <code>scripts/validate_submission.py</code>, which is a <strong>hard gate</strong>:
+  it refuses to publish anything the platform would reject.</p>
+  <p class="file">
+    <a class="download" href="downloads/gems6_hgb48-thr030_01be9644f2.tif" download>⬇ gems6_hgb48-thr030_01be9644f2.tif</a>
+    <span class="meta">3,214,769 bytes · sha256 <code>01be9644f2ec0df9324cfd36ef516bd3…</code></span>
+  </p>
+  <ol class="steps">
+    <li>Download the file above (one click).</li>
+    <li>Open the <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/" rel="noopener">competition page</a> and click
+        <em>Submit</em> → <em>Make new submission</em> (DrivenData sign-in required).</li>
+    <li>Upload the file. Leave the comment field as the methodology note below.</li>
+  </ol>
+  <p class="note"><strong>Methodology note for the submission comment</strong> (paste
+    this into the submission form — the brief asks for a short description that
+    distinguishes this file from earlier attempts):</p>
+  <p class="methodnote"><code>One entry. Probability surface from
+    HistGradientBoosting over 48 channels — the 19 official
+    GeoDAWN/USGS bands plus derived horizontal-gradient, analytic-signal, tilt,
+    curvature, break-in-slope and structure-tensor lineament features — trained on all
+    catalogue fault pixels plus 400k sampled negatives, scored on spatially blocked
+    folds with a 300 m buffer, and binarised at the CV-optimal threshold
+    0.3. Format verified by scripts/validate_submission.py.</code></p>
+  <details open><summary>Format gate — all checks (13)</summary>
+    <table class=""><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody><tr><td>file-exists</td><td>PASS</td><td>3214769 bytes</td></tr><tr><td>single-band</td><td>PASS</td><td>band count = 1</td></tr><tr><td>dtype-float32</td><td>PASS</td><td>dtype = float32</td></tr><tr><td>crs-epsg32611</td><td>PASS</td><td>CRS = EPSG:32611 (epsg 32611)</td></tr><tr><td>resolution-100m</td><td>PASS</td><td>resolution = (100.0, 100.0)</td></tr><tr><td>shape</td><td>PASS</td><td>shape = (3730, 3292), expected (3730, 3292)</td></tr><tr><td>geotransform</td><td>PASS</td><td>transform = (100.0, 0.0, 243350.0, 0.0, -100.0, 4508550.0)</td></tr><tr><td>nodata-nan</td><td>PASS</td><td>declared nodata = nan</td></tr><tr><td>values-in-0-1</td><td>PASS</td><td>finite range = [0.0, 0.9365358948707581]</td></tr><tr><td>no-inf</td><td>PASS</td><td>inf pixels = 0</td></tr><tr><td>template-verified</td><td>PASS</td><td>official sample submission sha256 ok, footprint = 5167373 px</td></tr><tr><td>NAN-INSIDE-FOOTPRINT</td><td>PASS</td><td>0 non-finite pixels inside the scored footprint (this is the exact condition that makes the submission form answer &#x27;Predicted values must be in range [0, 1]&#x27;)</td></tr><tr><td>footprint-matches-official</td><td>PASS</td><td>0 finite pixels outside the official footprint (use --allow-footprint-subset for experiments only)</td></tr></tbody></table>
+  </details>
+  <details><summary>File statistics</summary><table class=""><thead><tr><th>Statistic</th><th>Value</th></tr></thead><tbody><tr><td>total pixels</td><td>12279160</td></tr><tr><td>finite pixels</td><td>5167373</td></tr><tr><td>nan pixels</td><td>7111787</td></tr><tr><td>inf pixels</td><td>0</td></tr><tr><td>finite min</td><td>0.0</td></tr><tr><td>finite max</td><td>0.9365358948707581</td></tr><tr><td>positive pixels</td><td>370752</td></tr><tr><td>nan inside footprint</td><td>0</td></tr><tr><td>finite outside footprint</td><td>0</td></tr></tbody></table></details>
+  <p class="note">Built 2026-09-25T19:48:47Z by
+     <code>scripts/build_submission.py --strategy threshold</code>.
+     Model: <code>HistGradientBoostingClassifier(max_iter=300, lr=0.08, max_leaf_nodes=31, min_samples_leaf=40)</code>.</p>
+</div>
+<div class="card">
+  <h2>The executive summary</h2>
+  <p><strong>Task.</strong> Predict, per pixel, the probability that a geological
+  fault is present across the GeoDAWN region (northwestern Nevada and adjacent
+  eastern California), on a 100 m grid in EPSG:32611. Faults are the structural
+  marker of geothermal systems here.</p>
+  <p><strong>How scoring works.</strong> A distance-weighted Tversky index with
+  alpha = 0.2 (false positives) and beta = 0.8 (false negatives) and a 300 m
+  triangular kernel. Both prize rounds score the <em>same one submission</em>:
+  Phase 1 ($50,000, split across the top five) against a private expert-labelled
+  fault set, and Phase 2 ($250,000: $100k/$70k/$40k/$25k/$15k) against an expanded
+  label set built after experts review every team's predictions.</p>
+  <p><strong>What we ship.</strong> A GeoTIFF that satisfies every published format
+  rule, produced by code in this repository, plus the verification that it does.</p>
+  <p><strong>What we do not claim.</strong> We have no leaderboard score: the
+  private labels are not available, and the rules require the final submission to be
+  chosen without knowing private scores. Everything numeric on this site is measured
+  against the public catalogue and is labelled as a proxy.</p>
+</div>
+<div class="card">
+  <h2>What the degenerate baselines actually score</h2>
+  <p>Computed with <code>src/gems/metric.py</code> against the <strong>public
+  catalogue labels</strong>. This is a proxy: the competition is scored against
+  private expert labels that are NOT in the catalogue, so these numbers describe
+  "how well does this reproduce the known faults", not the leaderboard.</p>
+  <table class=""><thead><tr><th>Strategy</th><th>DTI</th><th>Predicted px</th><th>TP_w</th><th>FP_w</th><th>FN_w</th><th>Note</th></tr></thead><tbody><tr><td><code>all_zero</code></td><td>0.0000</td><td>0</td><td>0</td><td>0</td><td>60,988</td><td>the official description calls this &#x27;total fault absence&#x27;</td></tr><tr><td><code>all_one_everywhere</code></td><td>0.0246</td><td>12,279,160</td><td>60,988</td><td>12,068,002</td><td>0</td><td>the &#x27;predict everywhere&#x27; case the brief cites at ~0.10 DTI</td></tr><tr><td><code>all_one_inside_footprint</code></td><td>0.0580</td><td>5,167,373</td><td>60,988</td><td>4,956,731</td><td>0</td><td>predict 1 only inside the official footprint (no NaNs)</td></tr><tr><td><code>catalogue_copy_sample_submission</code></td><td>1.0000</td><td>60,988</td><td>60,988</td><td>0</td><td>0</td><td>reproducing the published faults — the &#x27;wrong target&#x27; trap</td></tr></tbody></table>
+  <p class="note">Faults cover <strong>1.18%</strong> of the
+  scored footprint (60,988 of 5,167,373 pixels)
+  and 0.50% of the full grid.
+  The closed form c/(c+α(1−c)) for the "predict everywhere" case gives <strong>0.0564</strong>.
+  The task brief's figure of "about 0.10 DTI for predict-everywhere" is
+  <strong>not reproduced</strong> by either the exact computation or the closed
+  form at this coverage — see the verification page.</p>
+</div>
+<div class="card">
+  <h2>Blocked, buffered cross-validation</h2>
+  <p>blocks are contiguous and the buffer excludes training pixels within one kernel support of a scored pixel; the scored set is the held-out blocks intersected with the official footprint Grid: 4×4 blocks,
+  4 folds, buffer 3 px
+  (300 m). 48 channels.</p>
+  <table class=""><thead><tr><th>Placement / threshold</th><th>mean DTI</th><th>min</th><th>max</th><th>folds</th></tr></thead><tbody><tr><td><code>binary@0.3</code></td><td>0.1119</td><td>0.0933</td><td>0.1253</td><td>4</td></tr><tr><td><code>binary@0.4</code></td><td>0.1055</td><td>0.0741</td><td>0.1343</td><td>4</td></tr><tr><td><code>binary@0.2</code></td><td>0.1047</td><td>0.0972</td><td>0.1165</td><td>4</td></tr><tr><td><code>binary@0.1</code></td><td>0.0879</td><td>0.0825</td><td>0.0950</td><td>4</td></tr><tr><td><code>threshold</code></td><td>0.0879</td><td>0.0825</td><td>0.0950</td><td>4</td></tr><tr><td><code>binary@0.5</code></td><td>0.0873</td><td>0.0487</td><td>0.1416</td><td>4</td></tr><tr><td><code>skeleton</code></td><td>0.0829</td><td>0.0752</td><td>0.0879</td><td>4</td></tr><tr><td><code>top1pct</code></td><td>0.0829</td><td>0.0631</td><td>0.1212</td><td>4</td></tr><tr><td><code>densified</code></td><td>0.0803</td><td>0.0754</td><td>0.0859</td><td>4</td></tr><tr><td><code>binary@0.05</code></td><td>0.0797</td><td>0.0770</td><td>0.0846</td><td>4</td></tr><tr><td><code>binary@0.02</code></td><td>0.0767</td><td>0.0748</td><td>0.0811</td><td>4</td></tr><tr><td><code>raw</code></td><td>0.0763</td><td>0.0743</td><td>0.0806</td><td>4</td></tr><tr><td><code>binary@0.6</code></td><td>0.0639</td><td>0.0250</td><td>0.1336</td><td>4</td></tr><tr><td><code>skeleton_spaced4</code></td><td>0.0621</td><td>0.0540</td><td>0.0691</td><td>4</td></tr></tbody></table>
+  <p class="note"><strong>What we shipped and why:</strong> the table is the reason
+  the file uses a plain threshold at the CV-optimal level rather than skeleton
+  thinning or 4-5 px spacing. The choice was made by measurement on held-out blocks;
+  it was not taken on faith from the brief. Note the shipped surface is
+  <strong>recall-heavy</strong> — it predicts far more positive pixels than the
+  catalogue contains — which is what this metric rewards here, and is also the main
+  thing to re-examine against the private labels.</p>
+  <details><summary>Per-fold detail</summary>
+  <table class=""><thead><tr><th>Fold</th><th>Train positives</th><th>Scored px</th><th>Scored positives</th><th>Best DTI</th><th>Seconds</th></tr></thead><tbody><tr><td>0</td><td>48,484</td><td>929,173</td><td>12,426</td><td>0.1059</td><td>71.1</td></tr><tr><td>1</td><td>34,354</td><td>2,083,992</td><td>26,366</td><td>0.0984</td><td>83.8</td></tr><tr><td>2</td><td>43,950</td><td>1,519,181</td><td>16,847</td><td>0.1253</td><td>76.9</td></tr><tr><td>3</td><td>55,612</td><td>635,027</td><td>5,349</td><td>0.1416</td><td>58.9</td></tr></tbody></table>
+  </details>
+</div>
+<div class="card">
+  <h2>What are the ambiguous bands, really?</h2>
+  <p>The GeoTIFF band descriptions are ambiguous (e.g. band &#x27;tc&#x27; is described as &#x27;Tilt angle or total curvature&#x27;). These tests resolve empirically what each band contains, so the derived features do not silently duplicate a provided band. Correlations use only pixels finite in the tested pair.</p>
+  <table class=""><thead><tr><th>Test</th><th>Pearson r</th><th>Median |difference|</th><th>Pixels</th></tr></thead><tbody><tr><td><code>tmi_hg_vs_computed_HGM</code></td><td>1.0000</td><td>13.09</td><td>5,154,814</td></tr><tr><td><code>tmi_hg_vs_computed_dTdx</code></td><td>-0.0261</td><td>13.15</td><td>5,154,814</td></tr><tr><td><code>tmi_vg_vs_computed_dTdz?</code></td><td>—</td><td>no vertical-derivative operator is derivable from a 2-D grid; tmi_vg is a provided upward-continuation derivative, used as-is.</td><td></td></tr><tr><td><code>tc_vs_atan2(tmi_vg,|tmi_hg|)</code></td><td>0.0128</td><td>18.48</td><td>5,165,840</td></tr><tr><td><code>tc_vs_laplacian(tmi)</code></td><td>-0.0022</td><td>18.48</td><td>5,154,814</td></tr><tr><td><code>grav_hg_vs_computed_HGM</code></td><td>0.0277</td><td>1.168</td><td>5,154,814</td></tr><tr><td><code>det_elev_slope_vs_computed_HGM</code></td><td>0.9506</td><td>3.686</td><td>5,154,814</td></tr><tr><td><code>det_elev_slope_vs_atan(HGM)</code></td><td>0.9542</td><td>3.686</td><td>5,154,814</td></tr><tr><td><code>rtp_vs_mag_anom</code></td><td>0.5522</td><td>90.65</td><td>5,165,852</td></tr><tr><td><code>tmi_vs_rtp</code></td><td>0.7520</td><td>52.29</td><td>5,165,852</td></tr></tbody></table>
+</div>
+<div class="card">
+  <h2>Official data — pinned, re-verified byte-for-byte</h2>
+  <p>The <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/data/" rel="noopener">data tab</a> is login-gated (verified:
+  it redirects to <code>/accounts/login/</code>), so the official bytes are carried
+  by a sha256-pinned transport and re-verified on placement. All eight hashes below
+  were independently re-computed in this checkout on 2026-09-25 — see the
+  verification page.</p>
+  <table class=""><thead><tr><th>File in repo</th><th>Official filename</th><th>Bytes</th><th>sha256</th><th>Status</th></tr></thead><tbody><tr><td><code>training_features.tif</code></td><td><code>gems-geodawn-numerical-features.tif</code></td><td>418,912,844</td><td><code class='hash'>4371c82e3b8339b807bdffcf…</code></td><td>fetched + hash-verified by script (419 MB, kept out of git)</td></tr><tr><td><code>labels.tif</code></td><td><code>existing_faults.tif</code></td><td>425,830</td><td><code class='hash'>7ba308ccdc4418b31a178f4f…</code></td><td>committed</td></tr><tr><td><code>sample_submission.tif</code></td><td><code>example_submission.tif</code></td><td>1,599,597</td><td><code class='hash'>2176d08e485aa2cd2860ce8d…</code></td><td>committed</td></tr></tbody></table>
+  <details><summary>Transport parts for the 419 MB feature stack (5 parts, concatenated)</summary>
+    <ul><li><code>part-000</code> 94,371,840 B <code class='hash'>0a330f8951af6c92…</code></li><li><code>part-001</code> 94,371,840 B <code class='hash'>3c98037b2c997e3b…</code></li><li><code>part-002</code> 94,371,840 B <code class='hash'>c375c4dbc40c59bb…</code></li><li><code>part-003</code> 94,371,840 B <code class='hash'>b164159e6d0cb259…</code></li><li><code>part-004</code> 41,425,484 B <code class='hash'>fa0a6f9c936fac1d…</code></li></ul>
+  </details>
+</div>
+<div class="card">
+  <h2>Rules that constrain how we work — quoted, with links</h2>
+  <p>Source: the <a href="https://www.nlr.gov/docs/fy26osti/96647.pdf" rel="noopener">official rules PDF</a>
+  (the DrivenData <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/rules/" rel="noopener">rules page</a> defers to it;
+  sponsors are DOE's Office of Geothermal and the National Lab of the Rockies).
+  Competition end: <strong>Dec. 3, 2026, 11:59 p.m. UTC</strong>
+  (<a href="https://www.drivendata.org/competitions/306/competition-doe-gems/" rel="noopener">competition home</a>).</p>
+  <table class=""><thead><tr><th>Constraint</th><th>Citation</th><th>Verbatim</th></tr></thead><tbody><tr><td>3 submissions per week for feedback</td><td>§3.4 Feedback</td><td>each participating entity may submit more than one set of predictions for automated scoring … up to three per week</td></tr><tr><td>Exactly one final submission, both rounds</td><td>§3.5 What To Submit</td><td>Before the end of the competition, you must choose only one submission for evaluation across both prize rounds.</td></tr><tr><td>Chosen blind to private scores</td><td>§3.6.2 Private Dataset Testing</td><td>you must make your decision without knowledge of your scores on the private test set</td></tr><tr><td>Single-entity award</td><td>Appendix A.3</td><td>The prize administrator will award a single dollar amount to the designated primary submitter</td></tr><tr><td>Generative-AI use must be disclosed</td><td>§3.2 Process Overview</td><td>you must indicate in the narrative … the extent to which, if any, you used generative AI technology and how you used it</td></tr><tr><td>Finalists submit code + documentation</td><td>§3.5</td><td>Their solution’s complete code assets and documentation … should be able to sufficiently reproduce the winning results and generate predictions on new data samples.</td></tr><tr><td>Eligibility</td><td>§1.3</td><td>individual competitor must be a U.S. citizen or permanent resident; Federal employees are not eligible; teams need a U.S. citizen/permanent-resident captain</td></tr><tr><td>Payment paperwork within 30 days</td><td>Appendix A.2</td><td>a completed NLR Request for ACH Banking Information form and a completed IRS W-9 form</td></tr><tr><td>Due diligence and risk review</td><td>Appendix A.12</td><td>All applications submitted to DOE are subject to a due diligence review … risk review … for potential risks of foreign interference</td></tr><tr><td>Return of funds for inaccurate information</td><td>Appendix A.16</td><td>if the prize was made based on fraudulent or inaccurate information … DOE has the right to demand that any prize funds … be returned</td></tr></tbody></table>
+  <p class="note"><strong>Generative-AI disclosure applies to this project.</strong>
+  This work is produced with an AI agent, so the finalist narrative must state that and
+  describe how. That is a submission requirement, not an optional note.</p>
+</div>
+<div class="card">
+  <h2>Limitations, stated plainly</h2>
+  <ul>
+    <li><strong>All scores here are proxies.</strong> Both prize rounds are scored
+      against private expert-labelled faults that are absent from the catalogue, and
+      the rules confirm there is spatial overlap between the training catalogue and the
+      test set. Every DTI reported on this site is measured against the public
+      catalogue, i.e. it answers "does this reproduce the known faults", which is
+      explicitly the wrong target. It is reported because it is the only labelled data
+      we have.</li>
+    <li><strong>No GPU and 3 GB of RAM.</strong> The reference solution (U-Net,
+      ResNet-18 encoder, 5 Monte-Carlo folds) cannot be trained here; PyTorch is not
+      installed and a full-resolution 19-band float32 stack does not fit in memory.
+      The model shipped here is a histogram gradient-boosting classifier over
+      sampled pixels, which is honest but weaker than the reference approach.</li>
+    <li><strong>The 1 m DEM is not used.</strong> The competition distributes it as a
+      link list whose source PDF has no text layer (the extraction pipeline had to OCR
+      it), and the tiles are individual ~100 MB objects over a region that spans
+      terabytes. Fetching it is feasible but out of scope for one session on this host.</li>
+    <li><strong>Buffered blocking reduces optimism, not self-deception.</strong>
+      Holding out 300 m around each test block stops the model from memorising
+      neighbouring pixels of the same fault, but it cannot create labels for faults
+      nobody has mapped yet.</li>
+    <li><strong>Phase 2 is 5× Phase 1</strong> and is judged by geologists reviewing
+      what we flagged. The geological-reasoning write-up per candidate is therefore a
+      first-class deliverable, and it is only partly present. See NEXT_STEPS.md.</li>
+  </ul>
+</div>
+</div></main>
+<footer><div class="wrap">
+Competition: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/</a> · Problem description: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/</a> ·
+About: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/page/968/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/page/968/</a> · Data: <a href="https://www.drivendata.org/competitions/306/competition-doe-gems/data/" rel="noopener">https://www.drivendata.org/competitions/306/competition-doe-gems/data/</a> ·
+Rules PDF: <a href="https://www.nlr.gov/docs/fy26osti/96647.pdf" rel="noopener">https://www.nlr.gov/docs/fy26osti/96647.pdf</a> ·
+Reference solution: <a href="https://github.com/drivendataorg/gems-prize-reference-solution" rel="noopener">https://github.com/drivendataorg/gems-prize-reference-solution</a>
+<p>This page is generated by <code>scripts/build_site.py</code> from measured
+evidence in <code>data/evidence/</code>. Numbers are not typed by hand.</p>
+</div></footer></body></html>

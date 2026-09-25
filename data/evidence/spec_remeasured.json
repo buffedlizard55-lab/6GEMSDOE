@@ -1,0 +1,88 @@
+{
+  "measured": {
+    "features": {
+      "height": 3730,
+      "width": 3292,
+      "count": 19,
+      "dtype": "float32",
+      "epsg": 32611,
+      "res": [
+        100.0,
+        100.0
+      ],
+      "nodata": -3.4028234663852886e+38,
+      "bounds": [
+        243350.0,
+        4135550.0,
+        572550.0,
+        4508550.0
+      ],
+      "transform": [
+        100.0,
+        0.0,
+        243350.0,
+        0.0,
+        -100.0,
+        4508550.0
+      ],
+      "band_descriptions": [
+        "mag_anom - Magnetic anomaly - deviation from expected Earth's magnetic field",
+        "rtp - Reduced to pole magnetic data - magnetic anomaly corrected for latitude effects",
+        "tmi_hg - Total magnetic intensity horizontal gradient - rate of change in horizontal direction",
+        "geod_2ndinv - Geodetic second invariant - measure of strain rate tensor magnitude",
+        "iso_grav_anom_slope - Isostatic gravity anomaly slope - gradient of gravity after isostatic correction",
+        "tc - Tilt angle or total curvature - magnetic field derivative for edge detection",
+        "geod_shearrate - Geodetic shear rate - rate of angular deformation from GPS/InSAR",
+        "geod_dilaterate - Geodetic dilatation rate - rate of volumetric strain (expansion/contraction)",
+        "tmi_vg - Total magnetic intensity vertical gradient - rate of change in vertical direction",
+        "deq_n100a15 - Distance to earthquake (n=100km radius, a=15\u00b0 azimuth parameters)",
+        "iso_grav_anom_vg - Isostatic gravity anomaly vertical gradient - vertical rate of change",
+        "det_elev - Detrended elevation - topography with regional trends removed",
+        "iso_grav_anom - Isostatic gravity anomaly - gravity after compensating for topographic mass",
+        "tmi - Total magnetic intensity - total strength of magnetic field",
+        "depth_to_base_surf - Depth to basement surface - thickness of sedimentary cover",
+        "ieq_n100a15 - Earthquake intensity or density (n=100km radius, a=15\u00b0 parameters)",
+        "cond_surf - Conductivity surface - electrical conductivity of subsurface",
+        "iso_grav_anom_hg - Isostatic gravity anomaly horizontal gradient - horizontal rate of change",
+        "det_elev_slope - Detrended elevation slope - gradient of elevation after detrending"
+      ]
+    },
+    "labels": {
+      "dtype": "int8",
+      "nodata": -1.0,
+      "unique": [
+        -1,
+        0,
+        1
+      ],
+      "counts": {
+        "-1": 7111787,
+        "0": 5106385,
+        "1": 60988
+      }
+    },
+    "sample_submission": {
+      "finite": 5167373,
+      "nan": 7111787,
+      "finite_unique": {
+        "0.0": 5106385,
+        "1.0": 60988
+      },
+      "nodata": NaN
+    }
+  },
+  "expected": {
+    "shape": [
+      3730,
+      3292
+    ],
+    "epsg": 32611,
+    "res": [
+      100.0,
+      100.0
+    ],
+    "footprint_pixels": 5167373,
+    "label_positive_pixels": 60988
+  },
+  "ok": true
+}

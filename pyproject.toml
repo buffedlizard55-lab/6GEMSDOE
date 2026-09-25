@@ -1,0 +1,23 @@
+[project]
+name = "gems-6gemsdoe"
+version = "1.0.0"
+description = "GEMS Prize (DOE / DrivenData) — single canonical entry: data verification, official metric, submission gate, and the downloadable submission file"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy", "rasterio", "scikit-learn", "tifffile", "pillow"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["gems"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

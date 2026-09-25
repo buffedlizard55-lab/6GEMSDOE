@@ -1,0 +1,71 @@
+{
+  "tests": {
+    "tmi_hg_vs_computed_HGM": {
+      "n": 5154814,
+      "pearson_r": 0.9999979050308183,
+      "median_abs_diff": 13.086551733314991,
+      "max_abs_diff": 2189.434371948242,
+      "median_abs_a": 13.152296543121338
+    },
+    "tmi_hg_vs_computed_dTdx": {
+      "n": 5154814,
+      "pearson_r": -0.02607845367379586,
+      "median_abs_diff": 13.15076507627964,
+      "max_abs_diff": 2211.2830171585083,
+      "median_abs_a": 13.152296543121338
+    },
+    "tmi_vg_vs_computed_dTdz?": {
+      "note": "no vertical-derivative operator is derivable from a 2-D grid; tmi_vg is a provided upward-continuation derivative, used as-is."
+    },
+    "tc_vs_atan2(tmi_vg,|tmi_hg|)": {
+      "n": 5165840,
+      "pearson_r": 0.012800288586786973,
+      "median_abs_diff": 18.484171115618665,
+      "max_abs_diff": 88.57567349541932,
+      "median_abs_a": 18.48240566253662
+    },
+    "tc_vs_laplacian(tmi)": {
+      "n": 5154814,
+      "pearson_r": -0.002248776334878133,
+      "median_abs_diff": 18.4816118429153,
+      "max_abs_diff": 88.56650784148951,
+      "median_abs_a": 18.481642723083496
+    },
+    "grav_hg_vs_computed_HGM": {
+      "n": 5154814,
+      "pearson_r": 0.027708597374754385,
+      "median_abs_diff": 1.1675649848766625,
+      "max_abs_diff": 15.452025429345667,
+      "median_abs_a": 1.1676892042160034
+    },
+    "det_elev_slope_vs_computed_HGM": {
+      "n": 5154814,
+      "pearson_r": 0.9505935807536979,
+      "median_abs_diff": 3.6861939653754234,
+      "max_abs_diff": 61.74107140302658,
+      "median_abs_a": 3.74855375289917
+    },
+    "det_elev_slope_vs_atan(HGM)": {
+      "n": 5154814,
+      "pearson_r": 0.9542006298682882,
+      "median_abs_diff": 3.6862920578569174,
+      "max_abs_diff": 61.91043072938919,
+      "median_abs_a": 3.74855375289917
+    },
+    "rtp_vs_mag_anom": {
+      "n": 5165852,
+      "pearson_r": 0.5522323905894923,
+      "median_abs_diff": 90.651123046875,
+      "max_abs_diff": 3951.0262908935547,
+      "median_abs_a": 150.8608627319336
+    },
+    "tmi_vs_rtp": {
+      "n": 5165852,
+      "pearson_r": 0.7520485959686428,
+      "median_abs_diff": 52.28752517700195,
+      "max_abs_diff": 2467.5919189453125,
+      "median_abs_a": 136.6605453491211
+    }
+  },
+  "note": "The GeoTIFF band descriptions are ambiguous (e.g. band 'tc' is described as 'Tilt angle or total curvature'). These tests resolve empirically what each band contains, so the derived features do not silently duplicate a provided band. Correlations use only pixels finite in the tested pair."
+}
