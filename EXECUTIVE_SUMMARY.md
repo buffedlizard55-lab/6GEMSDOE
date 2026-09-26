@@ -114,6 +114,20 @@ in the worst.
 * **More training capacity** (400,000 negatives and 300 iterations vs 200,000 and
   200): no gain at the 5% budget (0.1694 vs 0.1730). Kept anyway because the final
   model is trained on all four blocks rather than three.
+* **17 cross-family agreement channels + agreement-gated placement** (the explicit
+  form of the brief's third research priority, added this session): 0.1670 vs 0.1698
+  at the shipped 3% budget on the full catalogue, and 0.112–0.116 for the gated
+  placement in every configuration, on identical blocked folds
+  (`data/evidence/experiments_agreement.json`). The channels help the hard
+  trace-removed simulation (+1% at a 2% budget) but are not strictly better on the
+  shipping axis, so the 88-channel file stands. Full audit and reasoning:
+  `RESEARCH.md` §9 and the site's experiments card.
+* **PU-style down-weighting of long catalogue traces** (`--pos-weight itrace`,
+  positives weighted 1/√trace-length): 0.1650 (88ch) / 0.1631 (105ch) at 3% vs
+  0.1698 / 0.1670 unweighted, lower in every robustness column
+  (`data/evidence/experiments_itrace.json`). The long mapped traces are cleaner
+  examples of the same physics, not a different target — down-weighting them
+  removes the anchor of the probability surface.
 
 ## 4. What is verified in this repository
 

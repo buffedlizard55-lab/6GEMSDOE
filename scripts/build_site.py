@@ -42,6 +42,88 @@ def esc(x) -> str:
     return html.escape(str(x))
 
 
+def md_to_html(text: str) -> str:
+    """Minimal markdown -> HTML for RESEARCH.md (headings, tables, lists,
+    inline code/bold/italics/links, angle-bracket URLs). Good enough for the
+    research file; not a general markdown parser."""
+    import re as _re
+
+    def inline(s: str) -> str:
+        codes: list[str] = []
+        s = _re.sub(r"`([^`]+)`", lambda m: (codes.append(m.group(1)) or f"\x00{len(codes) - 1}\x00"), s)
+        s = _re.sub(r"<(https?://[^>\s]+)>", r'<a href="\1">\1</a>', s)
+        s = _re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2">\1</a>', s)
+        s = _re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+        s = _re.sub(r"\*([^*\n]+)\*", r"<em>\1</em>", s)
+        s = _re.sub(r"\x00(\d+)\x00", lambda m: f"<code>{esc(codes[int(m.group(1))])}</code>", s)
+        return s
+
+    out: list[str] = []
+    para: list[str] = []
+
+    def flush() -> None:
+        if para:
+            out.append("<p>" + inline(" ".join(para)) + "</p>")
+            para.clear()
+
+    in_ul = False
+    in_ol = False
+    table_rows: list[list[str]] = []
+
+    def flush_lists() -> None:
+        nonlocal in_ul, in_ol
+        if in_ul:
+            out.append("</ul>")
+            in_ul = False
+        if in_ol:
+            out.append("</ol>")
+            in_ol = False
+
+    def flush_table() -> None:
+        nonlocal table_rows
+        if table_rows:
+            rows = [r for r in table_rows if not all(set(c) <= set("-: ") for c in r)]
+            if rows:
+                out.append(table([inline(c) for c in rows[0]],
+                                 [[inline(c) for c in r] for r in rows[1:]]))
+            table_rows = []
+
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if line.startswith("|"):
+            flush()
+            flush_lists()
+            table_rows.append([c.strip() for c in line.strip("|").split("|")])
+            continue
+        flush_table()
+        if not line.strip():
+            flush()
+            flush_lists()
+            continue
+        if line.startswith("### "):
+            flush(); flush_lists(); out.append(f"<h3>{inline(line[4:])}</h3>"); continue
+        if line.startswith("## "):
+            flush(); flush_lists(); out.append(f"<h3>{inline(line[3:])}</h3>"); continue
+        if line.startswith("# "):
+            continue  # page-level title already provided by the card heading
+        m = _re.match(r"^(\d+)\.\s+(.*)$", line)
+        if m:
+            flush()
+            if not in_ol:
+                flush_lists(); out.append("<ol>"); in_ol = True
+            out.append(f"<li>{inline(m.group(2))}</li>")
+            continue
+        if line.startswith("- "):
+            flush()
+            if not in_ul:
+                flush_lists(); out.append("<ul>"); in_ul = True
+            out.append(f"<li>{inline(line[2:])}</li>")
+            continue
+        para.append(line)
+    flush(); flush_lists(); flush_table()
+    return "\n".join(out)
+
+
 def table(headers: list[str], rows: list[list[str]], cls: str = "") -> str:
     head = "".join(f"<th>{h}</th>" for h in headers)
     body = ""
@@ -218,6 +300,7 @@ def experiments_card() -> str:
     r1 = load("experiments.json")
     r2 = load("experiments_round2.json")
     r3 = load("experiments_blocks6.json")
+    r4 = load("experiments_agreement.json")
     if not r2:
         return ""
     cfg2 = r2["configs"]["extended"]
@@ -285,6 +368,44 @@ def experiments_card() -> str:
                             '25% of traces'], row)
                    + note + '</details>')
 
+    # cross-family agreement comparison (105 channels), same folds and budget
+    agreement_block = ""
+    if r4 and all(c in r4.get("configs", {}) for c in ("baseline", "extended", "agreement")):
+        arows = []
+        for k in ("topk_hard@0.02", "topk_hard@0.03", "topk_hard@0.05", "hard@0.2"):
+            cells = [f"<code>{esc(k)}</code>"]
+            for cfg in ("baseline", "extended", "agreement"):
+                c = r4["configs"][cfg]
+                v = c["aggregate_gt_full"].get(k, {}).get("mean_dti")
+                cells.append(f"{v:.4f}" if v is not None else "—")
+            arows.append(cells)
+        rows2 = []
+        for k in ("topk_hard@0.02", "topk_hard@0.03", "topk_hard@0.05"):
+            cells = [f"<code>{esc(k)}</code>"]
+            for cfg in ("baseline", "extended", "agreement"):
+                c = r4["configs"][cfg]
+                v5 = c.get("aggregate_keep0.5", {}).get(k, {}).get("mean_dti")
+                v25 = c.get("aggregate_keep0.25", {}).get(k, {}).get("mean_dti")
+                cells += [f"{v5:.4f}" if v5 is not None else "—",
+                          f"{v25:.4f}" if v25 is not None else "—"]
+            rows2.append(cells)
+        agreement_block = f"""
+  <h3>3. Cross-family agreement channels — measured, not a win</h3>
+  <p>The task brief's third research priority, implemented: each physical family
+  (magnetics, gravity, geodetic strain, seismicity, conductivity, topography) is
+  reduced to the max of its members' global percentile ranks, and 17 appended
+  channels count how many families are simultaneously elevated. Identical blocked
+  folds, budget and evaluation code as everything above:</p>
+  {table(['Placement', '48ch baseline', '88ch extended', '105ch agreement'], arows)}
+  {table(['Placement', 'baseline 50%', 'extended 50%', 'agreement 50%', 'baseline 25%', 'extended 25%', 'agreement 25%'], rows2)}
+  <p class="note">The agreement channels move the <em>hard</em> simulation (whole
+  fault traces removed from the ground truth — the proxy for faults the catalogue
+  does not have) up by ~1% at a 2% budget (0.1307 vs 0.1292) while costing ~2% on
+  the full catalogue at the shipped 3% budget (0.1670 vs 0.1698). It is not
+  strictly better on the axis we ship by, so the 88-channel file stays. Recorded
+  as a measured result, not a null hand-wave.</p>
+"""
+
     return f"""
 <div class="card">
   <h2>Experiments — what actually moved the score</h2>
@@ -321,8 +442,25 @@ def experiments_card() -> str:
   but it gives up 12.7% if the test set is a quarter the size of the catalogue. The
   3% budget gives up 3% in the best case to hold its worst case to 5%.</p>
   {blocks6}
-  <h3>3. What did <em>not</em> work — recorded so it is not retried</h3>
+  {agreement_block}
+  <h3>4. What did <em>not</em> work — recorded so it is not retried</h3>
   <ul>
+    <li><strong>Gated top-k placement</strong> (the 3% budget spent on cross-family
+      agreement pixels first): 0.112–0.116 vs 0.167–0.170 for the ungated top-k,
+      in every channel configuration. The gate excludes catalogue faults the model
+      has already learned well, and a budget spent on a stricter, less-likely set
+      cannot beat the probability order — measured on all four folds, not argued.</li>
+    <li><strong>The 17 cross-family agreement channels</strong>, at the shipped 3%
+      budget: 0.1670 vs 0.1698 for 88 channels on the full catalogue (the hard
+      simulation moves the other way, +1% at a 2% budget — see section 3). Not
+      strictly better on the shipping axis, so not shipped.</li>
+    <li><strong>PU-style down-weighting of long catalogue traces</strong>
+      (positives weighted 1/√trace-length, "easy" mapped faults de-emphasised so the
+      model should lean on short unmapped ones): 0.1650 (88ch) / 0.1631 (105ch) at
+      a 3% budget vs 0.1698 / 0.1670 unweighted, and lower in every robustness
+      column (<code>experiments_itrace.json</code>). The long mapped traces are not
+      less like the private faults — they are cleaner examples of the same physics,
+      and down-weighting them removes the anchor of the probability surface.</li>
     <li><strong>Lineament post-processing.</strong> Max over straight segments of 3,
       5 and 9 px in 8 orientations, and 50/50 mixes with the raw surface. Best
       variant {line_rows[0][1] if line_rows else '—'} vs
@@ -766,8 +904,9 @@ def build_research() -> str:
          "Engineering (Stanford)",
          "https://pangea.stanford.edu/ERE/db/GeoConf/papers/SGW/2025/Hermant.pdf"],
         ["Tilt-angle edge detection for potential fields",
-         "Miller & Singh 1994, Geophysics 62(1)", "https://doi.org/10.1190/1.1444129"],
-        ["Total horizontal derivative of the tilt angle as an edge detector",
+         "Miller & Singh 1994, Journal of Applied Geophysics 32(2-3): 213-217",
+         "https://doi.org/10.1016/0926-9851(94)90022-1"],
+        ["Total horizontal derivative for structural mapping",
          "Verduzco, Fairhead, Green & MacKenzie 2004, The Leading Edge 23(2): 116-119",
          "https://doi.org/10.1190/1.1651454"],
         ["Theta map — the analytic-signal-normalised horizontal gradient, which "
@@ -780,11 +919,13 @@ def build_research() -> str:
         ["The analytic signal of two-dimensional magnetic bodies",
          "Nabighian 1972, Geophysics 37(3)", "https://doi.org/10.1190/1.1440276"],
         ["Local orientation / structure tensor for lineament detection",
-         "Weickert 1998, Computer Vision and Applications; Bigun & Granlund 1987",
-         "https://doi.org/10.1109/TPAMI.1987.4767965"],
+         "Bigun & Granlund 1987, ICCV London pp. 433-438; Weickert 1998, "
+         "Image and Vision Computing 16(11): 827-832",
+         "https://doi.org/10.1016/S0262-8856(98)00111-6"],
         ["Curvature of terrain surfaces from gridded elevation",
-         "Zevenbergen & Thorne 1987, Math. Geol. 19(2); Moore, Grayson & Ladson 1991",
-         "https://doi.org/10.1007/BF00893750"],
+         "Zevenbergen & Thorne 1987, Earth Surf. Process. Landforms 12(1): 47-56; "
+         "Moore, Grayson & Ladson 1991, Hydrological Processes 5(1): 3-30",
+         "https://doi.org/10.1002/esp.3290120107"],
         ["Distance-weighted / Tversky index family",
          "Tversky 1977, Psychological Review 84(4); Salehi et al. 2017 (Tversky loss)",
          "https://doi.org/10.1037/0033-295X.84.4.327"],
@@ -843,6 +984,17 @@ def build_research() -> str:
          "Local standard deviation over a Gaussian window — fault and damage zones "
          "are texturally rougher than the surrounding block, independent of the sign "
          "of the anomaly", "textural contrast; standard practice in terrain analysis"],
+        ["<code>famrank_*</code>, <code>n_agree_top*</code>, "
+         "<code>agree_*</code> (derived, cross-family agreement — the 17 channels "
+         "appended to make 105)",
+         "Each physical family (magnetics, gravity, strain, seismicity, conductivity, "
+         "topography) is reduced to the max of its members' global percentile ranks; "
+         "the appended channels count how many independent families are simultaneously "
+         "elevated and multiply their ranks. A false positive would have to be wrong "
+         "about several independent physical mechanisms at once. This is the "
+         "cross-signal agreement the task brief asks for, implemented as features the "
+         "tree can combine with the raw bands, plus an explicit gate for placement.",
+         "task brief, third research priority; the same multi-sensor logic as Mattéo 2021"],
     ]
     return page(f"Research & method — {SITE_TITLE}", f"""
 <div class="card">
@@ -930,6 +1082,17 @@ def build_research() -> str:
   <p class="note">The two deep-learning fault-mapping papers were cited by the
   competition's own About page; the potential-field edge methods are the standard
   operators for exactly the magnetic and gravity layers this competition provides.</p>
+  <p class="note"><strong>Source audit, 2026-09-25.</strong> Every source above and
+  below was fetched or resolved by hand in this session — not taken from memory.
+  The audit found three earlier citations whose DOIs actually belonged to
+  unrelated papers (Miller &amp; Singh 1994; Zevenbergen &amp; Thorne 1987; Bigun
+  &amp; Granlund 1987). The table now carries the corrected, verified references,
+  and the full audit — including the two corrected paper titles — is in the next
+  card, reproduced verbatim from <code>RESEARCH.md</code> in the repository.</p>
+</div>
+<div class="card">
+  <h2>Deep research — the full source audit</h2>
+  {md_to_html((REPO_ROOT / "RESEARCH.md").read_text())}
 </div>
 <div class="card">
   <h2>Reproducing everything on this site</h2>
@@ -937,8 +1100,9 @@ def build_research() -> str:
 pip install --break-system-packages numpy scipy rasterio scikit-learn tifffile pillow pytest
 python scripts/fetch_and_verify_data.py     # places the official rasters, verifies sha256
 python scripts/analysis.py --only spec,baselines,bands   # measured evidence
-python scripts/build_features.py            # 48-channel stack (disk-backed)
-python scripts/analysis.py --only cv        # blocked, buffered cross-validation
+python scripts/build_rank_tables.py         # global percentile-rank LUTs for the agreement channels
+python scripts/build_features.py            # 105-channel stack: 88 + 17 cross-family agreement (disk-backed)
+python scripts/experiment.py --configs baseline,extended,agreement   # blocked, buffered CV
 python scripts/build_submission.py          # writes + gates the submission GeoTIFF
 python -m pytest tests/ -q                  # metric + gate + spec tests
 python scripts/build_site.py                # regenerates this site</pre>

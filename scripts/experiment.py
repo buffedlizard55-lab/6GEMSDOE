@@ -83,7 +83,9 @@ TRACE_KEEP = [1.0, 0.5, 0.25]  # fraction of held-out fault TRACES kept as GT
 # (not "the winners") so the sensitivity table is not a post-hoc selection.
 TRACE_PLACEMENTS = ["raw", "soft@0.3", "hard@0.1", "hard@0.2", "hard@0.3",
                     "topk_hard@0.005", "topk_hard@0.01", "topk_hard@0.02",
-                    "topk_hard@0.03", "topk_hard@0.05", "topk_hard@0.1"]
+                    "topk_hard@0.03", "topk_hard@0.05", "topk_hard@0.1",
+                    "topk_hard@0.03_g25_4", "topk_hard@0.05_g25_4",
+                    "topk_hard@0.03_g10_4"]
 
 
 # --------------------------------------------------------------------------- io
@@ -212,12 +214,26 @@ def placements(p: np.ndarray, valid: np.ndarray) -> dict[str, np.ndarray]:
 def run_fold(mm, channels: list[str], n_channels: int, gt: np.ndarray,
              footprint: np.ndarray, trace_id: np.ndarray, n_trace: int,
              folds: gcv.Folds, k: int, max_train_px: int, iters: int,
-             seed: int) -> dict:
+             seed: int, pos_weight: np.ndarray | None = None,
+             trace_excl: np.ndarray | None = None,
+             gates: dict[str, np.ndarray] | None = None) -> dict:
+    """One blocked fold.
+
+    pos_weight   per-pixel training weight (PU-style: long "already well
+                 mapped" catalogue traces down-weighted, see --pos-weight)
+    trace_excl   bool grid; where True the pixel is EXCLUDED from training in
+                 every fold (whole fault traces held out from the model, the
+                 rediscovery diagnostic, see --trace-holdout)
+    gates        {label: bool grid} for gated top-k placements (agreement)
+    """
     from sklearn.ensemble import HistGradientBoostingClassifier
+    from gems.placement import gated_topk
 
     shape = (spec.HEIGHT, spec.WIDTH)
     train_mask, test_mask = folds.train_test_masks(shape, k)
     train_mask &= footprint
+    if trace_excl is not None:
+        train_mask &= ~trace_excl
     score_mask = test_mask & footprint
 
     pos_idx = np.flatnonzero((gt & train_mask).ravel())
@@ -229,6 +245,7 @@ def run_fold(mm, channels: list[str], n_channels: int, gt: np.ndarray,
     rows, cols = np.unravel_index(sel, shape)
     X = np.asarray(mm[rows, cols, :n_channels], dtype=np.float32)
     y = gt[rows, cols].astype(np.uint8)
+    w = pos_weight[rows, cols] if pos_weight is not None else None
     del rows, cols, sel, pos_idx, neg_idx
 
     model = HistGradientBoostingClassifier(
@@ -236,9 +253,9 @@ def run_fold(mm, channels: list[str], n_channels: int, gt: np.ndarray,
         min_samples_leaf=40, l2_regularization=1.0, random_state=seed + k,
         early_stopping=False)
     t_fit = time.time()
-    model.fit(X, y)
+    model.fit(X, y, sample_weight=w)
     fit_s = round(time.time() - t_fit, 1)
-    del X, y
+    del X, y, w
 
     srows, scols = np.nonzero(score_mask)
     order = np.argsort(srows, kind="stable")
@@ -271,6 +288,15 @@ def run_fold(mm, channels: list[str], n_channels: int, gt: np.ndarray,
     del grid_pred
 
     cands = placements(crop_pred, crop_valid)
+    if gates:
+        # Gated top-k: exact budget, spent on cross-signal-agreeing pixels
+        # first (agreement channels must be present in the stack).
+        for glabel, gfull in gates.items():
+            g = gfull[sl]
+            for frac in (0.01, 0.02, 0.03, 0.05):
+                cands[f"topk_hard@{frac:g}_{glabel}"] = np.where(
+                    gated_topk(crop_pred, crop_valid, g, frac), 1.0, 0.0
+                ).astype(np.float32)
     for sname, sarr in surfaces(crop_pred, crop_valid).items():
         if sname == "raw":
             continue  # already covered by `placements` on the raw surface
@@ -359,6 +385,15 @@ def main() -> int:
     ap.add_argument("--max-train-px", type=int, default=200_000)
     ap.add_argument("--iters", type=int, default=200)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--pos-weight", choices=["none", "itrace"], default="none",
+                    help="itrace = PU-style: catalogue fault pixels are weighted "
+                         "1/sqrt(trace length) so long, well-mapped traces (the "
+                         "'easy' ones least like the private new-fault set) count "
+                         "less in training")
+    ap.add_argument("--trace-holdout", type=float, default=0.0,
+                    help="diagnostic: fraction of whole fault traces excluded "
+                         "from training in EVERY fold (rediscovery test — the "
+                         "model has never seen those faults)")
     ap.add_argument("--out", default=str(EV / "experiments.json"))
     args = ap.parse_args()
 
@@ -379,12 +414,52 @@ def main() -> int:
     folds = gcv.make_folds(n_blocks=args.blocks, n_folds=args.folds,
                            buffer_px=args.buffer)
 
+    # --- optional training-side variants (applied identically to every fold) --
+    pos_weight = None
+    if args.pos_weight == "itrace":
+        lens = np.bincount(trace_id.ravel(), minlength=n_trace + 1)
+        raw = 1.0 / np.sqrt(lens[trace_id].astype(np.float64))
+        # Background weight MUST be 1.0, not 0.0: HistGradientBoosting's
+        # sample_weight=0 drops a sample from the fit entirely, which would
+        # delete every negative pixel and collapse the model to all-positive.
+        pos_weight = np.ones((spec.HEIGHT, spec.WIDTH), dtype=np.float32)
+        pos_weight[gt] = raw[gt]
+        pos_weight[gt] = pos_weight[gt] / pos_weight[gt].mean()  # mean 1 on gt
+        del raw, lens
+        print("pos_weight=itrace (positives 1/sqrt(trace length), mean 1; "
+              "negatives 1)", flush=True)
+
+    trace_excl = None
+    n_held_traces = 0
+    if args.trace_holdout > 0.0:
+        rng = np.random.default_rng(20240925)
+        drop_ids = rng.choice(n_trace, size=int(round(args.trace_holdout * n_trace)),
+                              replace=False) + 1
+        trace_excl = np.isin(trace_id, drop_ids) & gt
+        n_held_traces = len(drop_ids)
+        print(f"trace_holdout={args.trace_holdout}: {n_held_traces} whole traces "
+              f"excluded from ALL training "
+              f"({int(trace_excl.sum()):,} gt px)", flush=True)
+
+    gates = None
+    if len(channels) > 88:
+        i25 = channels.index("n_agree_top25")
+        i10 = channels.index("n_agree_top10")
+        gates = {
+            "g25_4": np.asarray(mm[:, :, i25] >= 4, dtype=bool),
+            "g10_4": np.asarray(mm[:, :, i10] >= 4, dtype=bool),
+        }
+        print(f"gates: g25_4={int(gates['g25_4'].sum()):,} px, "
+              f"g10_4={int(gates['g10_4'].sum()):,} px", flush=True)
+
     configs = {}
     for name in args.configs.split(","):
         name = name.strip()
         if name == "baseline":
             configs[name] = 48
         elif name == "extended":
+            configs[name] = min(88, len(channels))
+        elif name == "agreement":
             configs[name] = len(channels)
         else:
             print(f"unknown config {name}", file=sys.stderr)
@@ -403,6 +478,10 @@ def main() -> int:
                       "l2_regularization=1.0)"),
             "thresholds": THRESHOLDS, "top_fractions": TOP_FRACTIONS,
             "trace_keep": TRACE_KEEP,
+            "pos_weight": args.pos_weight,
+            "trace_holdout": args.trace_holdout,
+            "trace_holdout_traces": n_held_traces,
+            "gates": sorted(gates) if gates else [],
             "feature_meta": {k: v for k, v in meta.items() if k != "channels"},
             "note": ("scores are against the PUBLIC CATALOGUE on held-out "
                      "spatial blocks — a proxy for the private new-fault test "
@@ -417,7 +496,9 @@ def main() -> int:
         folds_rec = []
         for k in range(args.folds):
             rec = run_fold(mm, channels, n_ch, gt, footprint, trace_id, n_trace,
-                           folds, k, args.max_train_px, args.iters, args.seed)
+                           folds, k, args.max_train_px, args.iters, args.seed,
+                           pos_weight=pos_weight, trace_excl=trace_excl,
+                           gates=gates)
             best = max(v["dti"] for v in rec["gt_full"].values())
             best_name = max(rec["gt_full"].items(), key=lambda kv: kv[1]["dti"])[0]
             print(f"  fold {k}: n_score={rec['n_score_px']} n_gt={rec['n_gt']} "

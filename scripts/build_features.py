@@ -32,8 +32,54 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from gems import features as F  # noqa: E402
 from gems import spec  # noqa: E402
+from gems.raster import sha256_file  # noqa: E402
 
 HALO = 40  # px; > 4 * sigma_max (=32) so filtered interiors are exact
+
+
+class RankTables:
+    """Per-band percentile-rank lookups from scripts/build_rank_tables.py.
+
+    rank(band, arr) maps every finite value to its midpoint percentile over
+    the valid population of the official footprint. Monotone and per-pixel,
+    so it cannot leak across blocked CV folds; the global distribution it
+    uses is hash-pinned to the official raster (the JSON stores both sha256s).
+    """
+
+    def __init__(self, path: Path):
+        payload = json.loads(path.read_text())
+        self.nbins = int(payload["nbins"])
+        self.features_sha256 = payload["features_sha256"]
+        self.tables = payload["bands"]
+        self.lut: dict[str, np.ndarray | None] = {}
+        for name, t in self.tables.items():
+            if t.get("degenerate") or not t.get("cdf") or t["total"] == 0:
+                self.lut[name] = None
+                continue
+            cdf = np.asarray(t["cdf"], dtype=np.float64)
+            counts = np.diff(np.concatenate([[0.0], cdf]))
+            # bin midpoint: the rank a value in that bin represents
+            self.lut[name] = ((cdf - 0.5 * counts) / t["total"]).astype(np.float32)
+
+    def check_sha(self, raster_sha256: str) -> None:
+        if self.features_sha256 != raster_sha256:
+            raise RuntimeError(
+                "rank tables were built from a different feature raster than "
+                "the one being processed — re-run scripts/build_rank_tables.py")
+
+    def rank(self, band: str, arr: np.ndarray) -> np.ndarray:
+        t = self.tables.get(band)
+        lut = self.lut.get(band)
+        if t is None or lut is None:
+            return np.full(arr.shape, np.nan, dtype=np.float32)
+        bad = ~np.isfinite(arr)
+        a = np.where(bad, 0.0, arr)
+        span = t["vmax"] - t["vmin"]
+        binidx = np.clip(
+            ((a - t["vmin"]) / span * (self.nbins - 1)).astype(np.int64),
+            0, self.nbins - 1)
+        r = lut[binidx]
+        return np.where(bad, np.nan, r)
 
 
 def channel_plan() -> list[str]:
@@ -60,6 +106,30 @@ def channel_plan() -> list[str]:
         "x_cond_surf__depth_to_base_surf",
         "x_ieq_n100a15__deq_n100a15",
     ]
+    # ------------------ agreement channels (appended after the 88) ---------
+    # Cross-signal agreement across INDEPENDENT source families (task brief:
+    # "agreement across independent signals is a stronger candidate than any
+    # one layer alone"). Each family's evidence is the max of the percentile
+    # ranks of its member bands (global rank tables from
+    # scripts/build_rank_tables.py — a monotone per-pixel transform, so no CV
+    # leakage). Families, from the official band list:
+    #   mag    tmi, rtp, mag_anom, tmi_hg, tmi_vg
+    #   grav   iso_grav_anom, iso_grav_anom_hg, iso_grav_anom_vg, iso_grav_anom_slope
+    #   strain geod_2ndinv, geod_shearrate, geod_dilaterate
+    #   seis   ieq_n100a15, deq_n100a15 (rank inverted: closer = stronger)
+    #   cond   cond_surf, depth_to_base_surf
+    #   topo   det_elev, det_elev_slope
+    # The channels are appended (never inserted), so channels[:48] and
+    # channels[:88] remain exactly the baseline/extended stacks of earlier
+    # runs — the yardstick is unchanged.
+    agreement = [
+        "famrank_mag", "famrank_grav", "famrank_strain",
+        "famrank_seis", "famrank_cond", "famrank_topo",
+        "n_avail_fam", "max_famrank", "mean_famrank", "min_famrank",
+        "n_agree_top10", "n_agree_top25", "n_agree_top50",
+        "agree_strain_seis", "agree_strain_cond", "agree_seis_cond",
+        "agree_strain_seis_cond",
+    ]
     extended = []
     # multi-scale horizontal-gradient magnitude (potential-field edge mapping)
     for src in ("tmi", "rtp", "mag_anom", "iso_grav_anom", "det_elev"):
@@ -85,10 +155,10 @@ def channel_plan() -> list[str]:
     # lineament tensor on the two sources the baseline stack skipped
     extended += ["lin_cond_energy_s2", "lin_cond_coherence_s2",
                  "lin_rtp_energy_s2", "lin_rtp_coherence_s2"]
-    return names + baseline + extended
+    return names + baseline + extended + agreement
 
 
-def derived(bands: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+def derived(bands: dict[str, np.ndarray], ranks: RankTables) -> dict[str, np.ndarray]:
     """All derived channels for one tile (any tile size; NaN-propagating)."""
     out: dict[str, np.ndarray] = {}
 
@@ -185,6 +255,68 @@ def derived(bands: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
         out[f"lin_{src_name}_coherence_s2"] = t.coherence
         del t, ds
 
+    # ===================== agreement channels (appended) =====================
+    # Family evidence = max of the (inverted where appropriate) percentile
+    # ranks of the family's member bands. NaN where every member is invalid.
+    fams: dict[str, tuple[str, ...]] = {
+        "mag": ("tmi", "rtp", "mag_anom", "tmi_hg", "tmi_vg"),
+        "grav": ("iso_grav_anom", "iso_grav_anom_hg", "iso_grav_anom_vg",
+                 "iso_grav_anom_slope"),
+        "strain": ("geod_2ndinv", "geod_shearrate", "geod_dilaterate"),
+        "seis": ("ieq_n100a15", "deq_n100a15"),
+        "cond": ("cond_surf", "depth_to_base_surf"),
+        "topo": ("det_elev", "det_elev_slope"),
+    }
+    famrank: dict[str, np.ndarray] = {}
+    shape = bands["tmi"].shape
+    for fam, members in fams.items():
+        acc = np.full(shape, -1.0, dtype=np.float32)
+        for mb in members:
+            r = ranks.rank(mb, bands[mb])
+            if mb == "deq_n100a15":
+                r = np.where(np.isfinite(r), 1.0 - r, r)  # closer = more seismic
+            acc = np.fmax(acc, r)  # fmax ignores NaN: -1 stays if all invalid
+        famrank[fam] = np.where(acc >= 0.0, acc, np.nan).astype(np.float32)
+        out[f"famrank_{fam}"] = famrank[fam]
+
+    n_avail = np.zeros(shape, dtype=np.float32)
+    sumv = np.zeros(shape, dtype=np.float32)
+    maxv = np.full(shape, -1.0, dtype=np.float32)
+    minv = np.full(shape, np.inf, dtype=np.float32)
+    for fam in fams:
+        f = famrank[fam]
+        fin = np.isfinite(f)
+        n_avail += fin.astype(np.float32)
+        sumv = np.where(fin, sumv + f, sumv)
+        maxv = np.fmax(maxv, f)
+        minv = np.fmin(minv, f)
+    out["n_avail_fam"] = n_avail
+    out["max_famrank"] = np.where(maxv >= 0.0, maxv, np.nan).astype(np.float32)
+    out["min_famrank"] = np.where(np.isfinite(minv), minv, np.nan).astype(np.float32)
+    out["mean_famrank"] = np.where(n_avail > 0, sumv / np.maximum(n_avail, 1.0),
+                                   np.nan).astype(np.float32)
+
+    for thr_name, thr in (("top10", 0.90), ("top25", 0.75), ("top50", 0.50)):
+        # count of AVAILABLE families whose evidence is in the top thr share;
+        # an unavailable family (NaN) is simply not counted
+        cnt = np.zeros(shape, dtype=np.float32)
+        for fam in fams:
+            cnt += (famrank[fam] >= thr).astype(np.float32)
+        out[f"n_agree_{thr_name}"] = cnt
+
+    # The brief's named cross-references: strain rate x seismicity,
+    # strain rate x conductivity, seismicity x conductivity, and all three.
+    # Products of ranks: high only where every factor is elevated.
+    pairs = (("strain_seis", ("strain", "seis")),
+             ("strain_cond", ("strain", "cond")),
+             ("seis_cond", ("seis", "cond")),
+             ("strain_seis_cond", ("strain", "seis", "cond")))
+    for name, factors in pairs:
+        prod = np.ones(shape, dtype=np.float32)
+        for fam in factors:
+            prod = prod * famrank[fam]  # NaN propagates if any factor missing
+        out[f"agree_{name}"] = prod
+
     return out
 
 
@@ -199,6 +331,13 @@ def main() -> int:
     channels = channel_plan()
     names = [n for n, _ in spec.FEATURE_BANDS]
 
+    rank_path = REPO_ROOT / "data" / "evidence" / "rank_tables.json"
+    if not rank_path.exists():
+        print("rank tables missing — run scripts/build_rank_tables.py first "
+              "(needed by the agreement channels)", file=sys.stderr)
+        return 1
+    ranks = RankTables(rank_path)
+
     mm = np.lib.format.open_memmap(args.out, mode="w+", dtype=np.float32,
                                    shape=(spec.HEIGHT, spec.WIDTH, len(channels)))
     mm[:] = np.nan
@@ -207,6 +346,8 @@ def main() -> int:
 
     done_positives = np.zeros(spec.HEIGHT, dtype=bool)
     with rasterio.open(args.features) as src:
+        # the rank tables must have been built from THIS raster (sha256 pin)
+        ranks.check_sha(sha256_file(args.features))
         for r0 in range(0, spec.HEIGHT, args.tile_rows):
             r1 = min(r0 + args.tile_rows, spec.HEIGHT)
             w0 = max(0, r0 - HALO)
@@ -224,7 +365,7 @@ def main() -> int:
             for n in names:  # passthrough
                 mm[w0:w1, :, idx[n]] = bands[n]
 
-            der = derived(bands)
+            der = derived(bands, ranks)
 
             lo = r0 - w0
             hi = lo + (r1 - r0)
@@ -253,6 +394,8 @@ def main() -> int:
         "invalid_pixels": int(invalid.sum()),
         "valid_all_band_pixels": int((~invalid).sum()),
         "tile_rows": args.tile_rows, "halo": HALO,
+        "rank_tables_sha256": sha256_file(rank_path),
+        "features_sha256": ranks.features_sha256,
         "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "build_seconds": round(time.time() - t0, 1),
     }

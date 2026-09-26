@@ -61,10 +61,12 @@ src/gems/cv.py          spatially blocked, buffered cross-validation
 
 scripts/fetch_and_verify_data.py   place the official rasters, verify every sha256
 scripts/validate_submission.py     THE HARD GATE (run before any upload)
-scripts/build_features.py          88-channel derived feature stack (disk-backed)
+scripts/build_rank_tables.py       global percentile-rank LUTs (agreement channels)
+scripts/build_features.py          105-channel derived feature stack (disk-backed)
 scripts/analysis.py                baselines, band-identity tests, blocked CV
 scripts/experiment.py              controlled A/B: does a change raise the score?
 scripts/build_submission.py        train + predict + place + gate the GeoTIFF
+scripts/candidate_writeup.py       per-candidate Phase-2 record from the shipped file
 scripts/build_site.py              regenerate the published site from evidence
 
 tests/                  metric vs the official worked example; gate incident tests
@@ -78,11 +80,12 @@ downloads/              the submission file(s)
 pip install --break-system-packages numpy scipy rasterio scikit-learn tifffile pillow pytest
 python scripts/fetch_and_verify_data.py       # official rasters, every sha256 verified
 python scripts/analysis.py --only spec,baselines,bands
-python scripts/build_features.py
+python scripts/build_rank_tables.py           # rank LUTs (~2 min)
+python scripts/build_features.py              # 105-channel stack (~15 min)
 python scripts/analysis.py --only cv
-python scripts/experiment.py --configs baseline,extended   # controlled comparison
+python scripts/experiment.py --configs baseline,extended,agreement   # controlled comparison
 python scripts/build_submission.py --tag hgb88-topk03 \
-       --strategy "topk_hard@0.03" --n-channels 88
+       --strategy "topk_hard@0.03" --n-channels 88 --save-prob
 python -m pytest tests/ -q
 python scripts/build_site.py
 ```

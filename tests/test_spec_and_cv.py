@@ -161,3 +161,38 @@ def test_topk_hard_strategy_respects_the_budget():
     out = placement.get_strategy("topk_hard@0.1", prob, valid, threshold=0.0)
     assert set(np.unique(out)) <= {0.0, 1.0}
     assert int((out > 0).sum()) == 250
+
+
+def test_gated_topk_spends_the_exact_budget_gate_first():
+    rng = np.random.default_rng(21)
+    p = rng.random((50, 50)).astype(np.float32)
+    valid = np.ones((50, 50), dtype=bool)
+    gate = rng.random((50, 50)) < 0.05  # ~125 gated px, sparser than the budget
+
+    # budget larger than the gate: ALL gated pixels in, remainder from ungated
+    out = placement.gated_topk(p, valid, gate, 0.20)
+    assert int(out.sum()) == 500
+    assert (out[gate]).all()
+    assert not (out & ~valid).any()
+
+    # budget smaller than the gate: only the top-k of the gated set
+    out = placement.gated_topk(p, valid, gate, 0.005)
+    k = max(1, int(round(0.005 * 2500)))
+    assert int(out.sum()) == k
+    assert (out & ~gate).sum() == 0
+    # a monotone rescaling of p (order-preserving, stays in [0, 1]) must not
+    # change the selection
+    out2 = placement.gated_topk(p / p.max(), valid, gate, 0.005)
+    assert (out == out2).all()
+
+
+def test_topk_gate_strategy_requires_a_gate():
+    rng = np.random.default_rng(23)
+    p = rng.random((30, 30)).astype(np.float32)
+    valid = np.ones((30, 30), dtype=bool)
+    gate = rng.random((30, 30)) < 0.1
+    with pytest.raises(ValueError):
+        placement.get_strategy("topk_gate@0.05", p, valid, threshold=0.0)
+    out = placement.get_strategy("topk_gate@0.05", p, valid, threshold=0.0, gate=gate)
+    assert set(np.unique(out)) <= {0.0, 1.0}
+    assert int((out > 0).sum()) == 45

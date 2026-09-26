@@ -36,7 +36,7 @@ best. It does mean we are flying blind on relative performance.
 * The reference solution is a ResNet-18 U-Net trained over 5 Monte-Carlo folds on
   128 × 128 patches. That is not trainable here: PyTorch is not installed, there is no
   GPU, and a full-resolution 19-band float32 stack (933 MB) plus derived channels
-  (4.3 GB total for the 88-channel stack) already exceeds RAM — hence the
+  (≈4.9 GB for the 105-channel stack) already exceeds RAM — hence the
   tile-streaming feature builder and the disk-backed feature memmap.
 * The shipped model is `HistGradientBoostingClassifier` over **sampled** pixels
   (all 60,988 positives plus a 400,000-negative sample) on 88 channels. It is
@@ -81,6 +81,17 @@ slightly better at the shipped hyperparameters, but the honest reading is that o
 100 m grid the score is limited by the label set, not by the number of derivative
 channels.
 
+The same pattern repeats for the 17 cross-family **agreement** channels appended
+this session (per-family max percentile rank, family-count and rank-product
+channels — the explicit form of the task brief's third research priority):
+0.1670 vs 0.1698 at the shipped 3% budget, 0.1706 vs 0.1750 at 5%, on identical
+blocked folds (`data/evidence/experiments_agreement.json`). They help the hard
+trace-removed simulation (+1% at 2%) but not the full-catalogue axis we ship by,
+and the agreement-gated placement is decisively worse (0.112–0.116). The reading
+does not change: at 100 m, the gradient-boosting model already forms the
+cross-family conjunctions from the raw bands; adding them explicitly does not buy
+precision.
+
 ## 6. Placement is measured only against the catalogue
 
 The metric-aware argument in `src/gems/placement.py` is derived from the published
@@ -100,6 +111,15 @@ measurement rather than measurement alone:
   The 3% budget is the minimax-regret choice on two independent blockings (4×4 and
   6×6), giving up 3% in the best case to hold the worst case to 5%.
 
+One placement variant that looked plausible — spending the top-k budget on pixels
+where several independent physical families agree first (the cross-signal gate,
+`topk_gate@<frac>` in `src/gems/placement.py`) — is now measured and loses
+decisively: 0.112–0.116 vs 0.167–0.170 ungated, in all channel configurations, all
+four folds. The intuition it encoded (independent signals agreeing is strong
+evidence) is correct; the mechanism is wrong, because the gate filters by a
+property of the *features* while the probability already ranks the *fault evidence*,
+and the intersection is a set the model itself would have ranked below its top 3%.
+
 What is *not* hedged is the harder thing: the private faults are genuinely unmapped,
 so our per-fault recall on them will be lower than on catalogue faults, and no amount
 of placement algebra fixes that.
@@ -110,10 +130,16 @@ Phase 2 ($250k, five times Phase 1) is judged on what geologists see in our
 predictions, and the rules require finalists to supply complete code assets and
 documentation (documents describing resources, reproducing results, generating
 predictions on new data — §3.5, consistent with DrivenData's Winning Model
-Documentation Template). This repo has the code assets, the reproduction path and the
-evidence; it does **not** yet have a per-candidate geological write-up (the "why this
-lineament is a fault" narrative) or the Winning Model Documentation Template filled
-in. Those are tracked in `NEXT_STEPS.md`.
+Documentation Template). This repo now has the code assets, the reproduction path,
+the evidence, and a **deterministic per-candidate generator**:
+`scripts/candidate_writeup.py` takes the exact shipped GeoTIFF and the saved
+probability surface and writes `CANDIDATES.md` + `data/evidence/candidates.json`
+(per-component WGS84 geometry, PCA azimuth, length, probability statistics,
+per-family evidence ranks, cross-family agreement, distance to the nearest
+catalogue pixel, and the regional kinematic frame — 260 new-to-catalogue
+candidates, 466 km of line, for the current file). What is still missing: the
+hand narrative that ranks and interprets those candidates for the judge, and the
+Winning Model Documentation Template itself. Tracked in `NEXT_STEPS.md`.
 
 ## 8. Eligibility is unverified on our side
 

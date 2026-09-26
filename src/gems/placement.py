@@ -139,8 +139,48 @@ def topk_mask(p: np.ndarray, valid: np.ndarray, frac: float) -> np.ndarray:
     return (p >= thr) & valid
 
 
+def gated_topk(p: np.ndarray, valid: np.ndarray, gate: np.ndarray,
+               frac: float) -> np.ndarray:
+    """Exact-budget top-k that spends the budget on gated pixels first.
+
+    `gate` marks the pixels the cross-signal agreement test accepts. The full
+    budget `frac * n_valid` is still spent: all gated pixels up to the budget
+    are selected by probability, and only if the gate is sparser than the
+    budget does the remainder come from the ungated pixels, again by
+    probability. A monotone gate therefore changes WHERE the budget goes,
+    never how much — so it is directly comparable to `topk_mask` under the
+    same blocked folds.
+    """
+    p = np.clip(np.nan_to_num(p, nan=0.0), 0.0, 1.0)
+    n_valid = int(valid.sum())
+    if n_valid == 0:
+        return np.zeros_like(valid, dtype=bool)
+    k = max(1, int(round(frac * n_valid)))
+    gated = valid & gate
+    ungated = valid & ~gate
+    sel = np.zeros_like(valid, dtype=bool)
+    n_g = int(gated.sum())
+    if n_g >= k:
+        vals = p[gated]
+        thr = float(np.partition(vals, n_g - k)[n_g - k])
+        sel[gated] = vals >= thr
+    else:
+        sel[gated] = True
+        rem = k - n_g
+        n_u = int(ungated.sum())
+        if rem > 0 and n_u > 0:
+            vals = p[ungated]
+            if n_u > rem:
+                thr = float(np.partition(vals, n_u - rem)[n_u - rem])
+                sel[ungated] = vals >= thr
+            else:
+                sel[ungated] = True
+    return sel & valid
+
+
 def get_strategy(name: str, prob: np.ndarray, valid: np.ndarray, threshold: float,
-                 spacing: int = 4, top_fraction: float = 0.01) -> np.ndarray:
+                 spacing: int = 4, top_fraction: float = 0.01,
+                 gate: np.ndarray | None = None) -> np.ndarray:
     """Compute a single named placement.
 
     `strategies()` builds all of them, which is what the CV comparison wants but is
@@ -167,6 +207,17 @@ def get_strategy(name: str, prob: np.ndarray, valid: np.ndarray, threshold: floa
         frac = float(name.split("@", 1)[1])
         p = np.clip(np.nan_to_num(prob, nan=0.0), 0.0, 1.0)
         return np.where(topk_mask(p, valid, frac), p, 0.0).astype(np.float32)
+    if name.startswith("topk_gate@"):
+        # `topk_gate@<frac>`: same exact budget as topk_hard@<frac>, but the
+        # budget is spent on `gate` pixels first (cross-signal agreement).
+        # A gate must be supplied; without one this strategy is undefined.
+        if gate is None:
+            raise ValueError(
+                f"strategy {name!r} requires a gate surface (agreement channels "
+                f"from the feature stack)")
+        frac = float(name.split("@", 1)[1])
+        p = np.clip(np.nan_to_num(prob, nan=0.0), 0.0, 1.0)
+        return np.where(gated_topk(p, valid, gate, frac), 1.0, 0.0).astype(np.float32)
     if name == "densified":
         return densify_along_lineaments(
             np.where(valid, np.clip(np.nan_to_num(prob, nan=0.0), 0, 1), 0.0),
