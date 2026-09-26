@@ -39,6 +39,7 @@ beta = 0.8 (false negatives), 300 m triangular kernel.
 | Know what we cannot do yet | **[LIMITATIONS.md](LIMITATIONS.md)** |
 | Know what to do next | **[NEXT_STEPS.md](NEXT_STEPS.md)** |
 | Understand the audit finding | **[ACCOUNT_STATUS.md](ACCOUNT_STATUS.md)** |
+| Draft the mandatory narratives (AI disclosure §3.2, finalist docs §3.5) | **[NARRATIVES.md](NARRATIVES.md)** — draft, needs human approval |
 
 ## The submission file
 

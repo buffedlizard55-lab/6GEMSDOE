@@ -1,0 +1,155 @@
+{
+  "session": "2026-09-26T0425Z",
+  "generated_utc": "2026-09-26T04:25:18Z",
+  "branch": "arena/01a0dbf1-6gemsdoe",
+  "note": "Session re-verification: gate 13/13 PASS, official rasters 3/3 hash-verified, pytest 46/46 PASS, site rebuild drift-free, account-status re-audited (11 GEMS-named repos, Pages built on 11 (still flagged)).",
+  "submission_file": {
+    "path": "downloads/gems6_hgb88-topk03_33cec71ff0.tif",
+    "sha256": "33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab",
+    "sha256_matches_expected": true,
+    "expected_sha256": "33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab",
+    "bytes": 1652883,
+    "gate": "13/13 PASS",
+    "gate_ok": true,
+    "nan_inside_footprint": 0,
+    "finite_outside_footprint": 0,
+    "positive_pixels": 155021,
+    "finite_min": 0.0,
+    "finite_max": 1.0,
+    "strategy": "topk_hard@0.03 (HistGradientBoosting, 88 channels)"
+  },
+  "data_verification": {
+    "ok": true,
+    "files": {
+      "training_features.tif": {
+        "path": "data/training_features.tif",
+        "exists": true,
+        "bytes": 418912844,
+        "expected_bytes": 418912844,
+        "bytes_ok": true,
+        "sha256": "4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5",
+        "expected_sha256": "4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5",
+        "sha_ok": true,
+        "status": "verified"
+      },
+      "labels.tif": {
+        "path": "data/labels.tif",
+        "exists": true,
+        "bytes": 425830,
+        "expected_bytes": 425830,
+        "bytes_ok": true,
+        "sha256": "7ba308ccdc4418b31a178f4f1ef21aaa6e152e4028f2f6f64b01f7eb25ae4093",
+        "expected_sha256": "7ba308ccdc4418b31a178f4f1ef21aaa6e152e4028f2f6f64b01f7eb25ae4093",
+        "sha_ok": true,
+        "status": "verified"
+      },
+      "sample_submission.tif": {
+        "path": "data/sample_submission.tif",
+        "exists": true,
+        "bytes": 1599597,
+        "expected_bytes": 1599597,
+        "bytes_ok": true,
+        "sha256": "2176d08e485aa2cd2860ce8df539db4faf4d76163b38a4dd8c30a40454d35cbc",
+        "expected_sha256": "2176d08e485aa2cd2860ce8df539db4faf4d76163b38a4dd8c30a40454d35cbc",
+        "sha_ok": true,
+        "status": "verified"
+      }
+    }
+  },
+  "tests": {
+    "total": 46,
+    "passed": 46,
+    "failed": 0,
+    "pytest_exit_code": 0,
+    "pytest_summary_line": "46 passed in 5.71s",
+    "suites": [
+      "test_gate.py",
+      "test_metric.py",
+      "test_spec_and_cv.py"
+    ]
+  },
+  "site_build": {
+    "build_exit_code": 0,
+    "build_ok": true,
+    "drift_free": true,
+    "drifted_files": "",
+    "note": "scripts/build_site.py re-ran and the committed HTML was byte-identical (no drift)"
+  },
+  "account_status": {
+    "canonical_repo": "6GEMSDOE",
+    "canonical_site": "https://buffedlizard55-lab.github.io/6GEMSDOE/",
+    "duplication_flag": true,
+    "note": "STILL FLAGGED: the account holds 11 GEMS-named repositories; GitHub Pages is enabled and built on all 11. This repository is the single designated entry; no other copy is used for submissions or scoring.",
+    "gems_repos": [
+      {
+        "name": "11GEMSDOE",
+        "disk_usage_kb": 0,
+        "pages_status": "built"
+      },
+      {
+        "name": "5GEMSDOE",
+        "disk_usage_kb": 460609,
+        "pages_status": "built"
+      },
+      {
+        "name": "6GEMSDOE",
+        "disk_usage_kb": 390397,
+        "pages_status": "built"
+      },
+      {
+        "name": "7GEMSDOE",
+        "disk_usage_kb": 0,
+        "pages_status": "built"
+      },
+      {
+        "name": "8GEMSDOE",
+        "disk_usage_kb": 0,
+        "pages_status": "built"
+      },
+      {
+        "name": "GEMSDOE",
+        "disk_usage_kb": 400811,
+        "pages_status": "built"
+      },
+      {
+        "name": "GEMSDOE10",
+        "disk_usage_kb": 0,
+        "pages_status": "built"
+      },
+      {
+        "name": "GEMSDOE2",
+        "disk_usage_kb": 421640,
+        "pages_status": "built"
+      },
+      {
+        "name": "GEMSDOE3",
+        "disk_usage_kb": 24765,
+        "pages_status": "built"
+      },
+      {
+        "name": "GEMSDOE4",
+        "disk_usage_kb": 129999,
+        "pages_status": "built"
+      },
+      {
+        "name": "GEMSDOE9",
+        "disk_usage_kb": 0,
+        "pages_status": "built"
+      }
+    ],
+    "n_duplicate_repos": 10,
+    "action_required": "The sha256-pinned data bridge (419 MB in parts under data/bridge/) is now committed directly to 6GEMSDOE, so scripts/fetch_and_verify_data.py no longer depends on buffedlizard55-lab/GEMSDOE codeload. The other ten repositories can now safely be archived or deleted by the account holder."
+  },
+  "blocked_cv_proxy": {
+    "shipped_file_mean_blocked_dti": 0.1698,
+    "previous_file_mean_blocked_dti": 0.1119,
+    "note": "Proxy scores against the public catalogue on spatially blocked, buffered folds (4x4 blocks, 300 m buffer). Not leaderboard values: the leaderboard scores faults missing from the catalogue."
+  },
+  "limitations_and_blockers": [
+    "No DrivenData credentials in this sandbox: cannot read the public leaderboard, cannot submit, cannot download the official data tab directly. The official bytes are carried as sha256-pinned parts committed under data/bridge/ in THIS repo and re-verified on every placement (no cross-repo dependency since 2026-09-26).",
+    "The sandbox has 2 CPUs, ~4 GB RAM, no GPU: training the reference U-Net (ResNet-18) is out of scope here; the shipped model is HistGradientBoosting on sampled pixels.",
+    "Egress to the USGS 3DEP 1 m DEM bucket is blocked here, so the 1 m DEM link list (1m_DEM_links.csv) cannot be obtained directly from this host.",
+    "The 11-repo duplication is a real compliance exposure under rules A.12/A.16 until the other ten are archived.",
+    "Account holder must confirm eligibility (rules \u00a71.3: U.S. citizen/permanent resident, not Federal employee, not under 18) and finalise the generative-AI disclosure draft (rules \u00a73.2; see NARRATIVES.md)."
+  ]
+}

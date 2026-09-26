@@ -1,7 +1,7 @@
 # Next steps — ordered by expected effect on P(win)
 
-Status 2026-09-26 01:19 UTC (re-verified this session: gate 13/13 PASS, hashes 3/3 OK,
-`pytest` 46/46 PASS; see `data/evidence/session_reverification_2026-09-26T0119Z.json`).
+Status 2026-09-26 04:25 UTC (re-verified this session: gate 13/13 PASS, hashes 3/3 OK,
+`pytest` 46/46 PASS, site rebuild drift-free; see `data/evidence/session_reverification_2026-09-26T0425Z.json`).
 Data placement is solved (all three official rasters placed and
 hash-verified — 418,912,844 B, sha256 4371c82e… OK; see `data/evidence/data_verification.json`). Format is solved and gated. The remaining work is model
 quality against the *unmapped-fault* target, and the compliance items.
@@ -22,8 +22,10 @@ quality against the *unmapped-fault* target, and the compliance items.
    somebody with credentials can read the submission history, and write the chosen
    final submission into `SUBMISSION_GUIDE.md`.
 4. **Fill in the two mandatory narratives**: the generative-AI disclosure (§3.2 — this
-   project is produced with an AI agent, so it is not optional) and, if we are
-   finalists, the Winning Model Documentation Template (§3.5).
+   project is produced with an AI agent, so it is not optional; a review-ready
+   draft with per-sentence evidence is now in `NARRATIVES.md` §2, awaiting the
+   account holder's approval) and, if we are finalists, the Winning Model
+   Documentation Template (§3.5; checklist in `NARRATIVES.md` §3).
 
 ## P1 — the accuracy work, in the order the evidence suggests
 
