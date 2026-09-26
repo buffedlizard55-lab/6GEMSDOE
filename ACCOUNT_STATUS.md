@@ -1,8 +1,8 @@
 # Account and repository status — AUDIT RESULT: STILL FLAGGED
 
-**Re-audited 2026-09-25 (UTC) via the GitHub API, before any other work this
+**Re-audited 2026-09-26 (UTC) via the GitHub API, before any other work this
 session.** Every number below was produced by a read-only `gh` call in this
-session; nothing is carried over from memory.
+session; nothing is carried over from memory. Re-verified the submission gate and the official rasters in the same session (see `data/evidence/data_verification.json` and `scripts/validate_submission.py` 13/13 PASS).
 
 ## The rule being audited
 
@@ -42,9 +42,9 @@ this one competition, and **GitHub Pages is enabled and built on all eleven**.
 | `GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 400,811 | 2026-09-24T23:07:17Z |
 | `GEMSDOE2` | full site + `data/` + `scripts/` + `src/` | built | 421,640 | 2026-09-25T17:32:05Z |
 | `GEMSDOE3` | full site + `data/` + `evidence/` + `scripts/` + `src/` | built | 24,765 | 2026-09-25T17:36:01Z |
-| `GEMSDOE4` | full site + `data/` + `scripts/` + `src/` + `docs/` (promoted from a README stub to a full copy on 2026-09-25T21:03Z) | built | 55,484 | 2026-09-25T21:03:01Z |
-| `5GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 398,219 | 2026-09-25T19:41:12Z |
-| **`6GEMSDOE`** | **this repository — the designated single entry** | built | 0 | 2026-09-25T19:49:52Z |
+| `GEMSDOE4` | full site + `data/` + `scripts/` + `src/` + `docs/` (promoted from a README stub to a full copy on 2026-09-25T21:03Z) | built | 55,484 | 2026-09-26T00:36:16Z |
+| `5GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 460,609 | 2026-09-25T23:44:33Z |
+| **`6GEMSDOE`** | **this repository — the designated single entry** | built | 3,194 | 2026-09-26T00:41:09Z |
 | `7GEMSDOE` | `README.md` only | built | 0 | 2026-09-25T18:22:03Z |
 | `8GEMSDOE` | `README.md` only | built | 0 | 2026-09-25T18:22:23Z |
 | `GEMSDOE9` | `README.md` only | built | 0 | 2026-09-25T18:31:02Z |

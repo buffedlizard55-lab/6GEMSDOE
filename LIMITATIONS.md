@@ -57,7 +57,7 @@ egress policy blocks, and the downloads would not fit the workspace.
 **Impact:** a genuine topographic signal at 1 m — the sharpest expression of fault
 scarps — is missing. The 100 m detrended-elevation curvature features partially
 compensate but cannot replace it. This is probably the single largest untapped
-accuracy lever available. (Re-verified 2026-09-25: egress to `prd-tnm.s3.amazonaws.com`
+accuracy lever available. (Re-verified 2026-09-25 and 2026-09-26: egress to `prd-tnm.s3.amazonaws.com`
 and to `www.sciencebase.gov` is blocked from this sandbox, so it cannot be fetched
 here at all; it needs a different host.)
 
