@@ -26,8 +26,8 @@ until the file has passed `scripts/validate_submission.py` locally.
 
 ## 2. What the file must satisfy (all rules quoted from the official pages)
 
-Re-fetched and re-checked on 2026-09-25 and **re-verified 2026-09-26 00:20 UTC and again 01:19 UTC** from
-<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/> (both chunks fetched via platform fetcher; submission format, metric, and worked example re-confirmed; gate 13/13 PASS, hashes 3/3 OK — `data/evidence/session_reverification_2026-09-26T0119Z.json`).
+Re-fetched and re-checked on 2026-09-25 and **re-verified 2026-09-26 00:20 UTC, 01:19 UTC, and again 04:25 UTC** from
+<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/> (both chunks fetched via platform fetcher; submission format, metric, and worked example re-confirmed; gate 13/13 PASS, hashes 3/3 OK — `data/evidence/session_reverification_2026-09-26T0425Z.json`).
 
 | Rule | Requirement | Source |
 |---|---|---|
@@ -148,7 +148,7 @@ in the worst.
   on any violation, and it specifically refuses a file with a NaN inside the scored
   footprint — the condition that makes the submission form answer *"Predicted values
   must be in range [0, 1]"* even though every finite value is legal.
-  `tests/test_gate.py` proves it rejects exactly that file. Re-run on the shipped file 2026-09-26: 13/13 PASS (`scripts/validate_submission.py`).
+  `tests/test_gate.py` proves it rejects exactly that file. Re-run on the shipped file 2026-09-26 (00:20, 01:19, 03:13, and 04:25 UTC): 13/13 PASS every time (`scripts/validate_submission.py`; latest `data/evidence/session_reverification_2026-09-26T0425Z.json`).
 * **The new harness reproduces the old number exactly.** `scripts/experiment.py` on
   the baseline 48-channel model gives `soft@0.3` = 0.1119 / min 0.0933 / max 0.1253 —
   identical to the value the previous submission was chosen on. So the improvements

@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
-"""Generate a session re-verification record for this session."""
-import json, sys, time, subprocess
+"""Generate a session re-verification record for this session.
+
+Measures, then records: the gate on the shipped file, the sha256 of all three
+official rasters, the pytest suite, the duplicate-repo audit, and a site
+rebuild drift check. Nothing in the record is pre-written: every status string
+is computed from the measurements above it.
+"""
+import json
+import subprocess
+import sys
+import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -41,18 +50,27 @@ for name, pin in spec.PINS.items():
         "status": ("verified" if (actual == expected and actual_bytes == expected_bytes) else "MISMATCH") if actual else "missing",
     }
 
-# 4. Run pytest
+# 4. Run pytest with the same interpreter running this script (there is no
+# guarantee a .venv exists on a fresh checkout, so never hard-code one).
+# NOTE: do NOT pass -q here: pyproject's addopts already supplies -q, and a
+# second -q (i.e. -qq) suppresses the "N passed" summary line the parser below
+# needs (found 2026-09-26: parse returned None until this was removed).
 pytest = subprocess.run(
-    [str(REPO_ROOT / ".venv" / "bin" / "python"), "-m", "pytest", str(REPO_ROOT / "tests"),
+    [sys.executable, "-m", "pytest", str(REPO_ROOT / "tests"),
      "--tb=short"],
-    cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120,
+    cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=300,
 )
 # parse summary like "46 passed in 7.12s"
 import re
-m = re.search(r"(\d+)\s+passed", pytest.stdout + pytest.stderr)
+_pytest_out = pytest.stdout + pytest.stderr
+m = re.search(r"(\d+)\s+passed", _pytest_out)
 tests_passed = int(m.group(1)) if m else None
-m2 = re.search(r"(\d+)\s+failed", pytest.stdout + pytest.stderr)
+m2 = re.search(r"(\d+)\s+failed", _pytest_out)
 tests_failed = int(m2.group(1)) if m2 else 0
+# last non-empty line, kept in the record so a parse miss is auditable
+# (rather than silently recording passed=None, the tail shows what happened).
+_pytest_tail = [ln for ln in _pytest_out.splitlines() if ln.strip()][-1] \
+    if _pytest_out.strip() else "(no pytest output)"
 
 # 5. Duplicate-repo audit via gh
 gh_out = subprocess.run(
@@ -75,19 +93,56 @@ for r in gems_repos:
 now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 stamp = time.strftime("%Y-%m-%dT%H%MZ", time.gmtime())
 
+br = subprocess.run(
+    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+    cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+)
+branch = br.stdout.strip() if br.returncode == 0 else "unknown"
+
+# 6. Rebuild the site and check for drift (the build must be deterministic:
+# any diff means the committed HTML no longer matches the evidence).
+site = subprocess.run(
+    [sys.executable, str(REPO_ROOT / "scripts" / "build_site.py")],
+    cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120,
+)
+drift = subprocess.run(
+    ["git", "status", "--short", "index.html", "verification.html",
+     "research.html", "assets/style.css"],
+    cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+)
+site_drift = drift.stdout.strip()
+site_build_ok = site.returncode == 0
+site_drift_free = site_build_ok and not site_drift
+
+gate_str = f"{n_pass}/{n_total} {'PASS' if rep.ok else 'FAIL'}"
+data_ok = all(d["sha_ok"] for d in data_files.values()) and all(
+    d["exists"] for d in data_files.values())
+n_data_ok = sum(1 for d in data_files.values() if d["sha_ok"])
+tests_str = (f"{tests_passed}/{tests_passed + tests_failed} PASS"
+             if tests_passed is not None and tests_failed == 0
+             else f"passed={tests_passed} failed={tests_failed} "
+                  f"(exit {pytest.returncode})")
+dup_str = (f"{len(gems_repos)} GEMS-named repos, Pages built on "
+           f"{sum(1 for v in pages_built.values() if v == 'built')} "
+           f"(still flagged)" if gems_repos else "audit unavailable")
+note = (f"Session re-verification: gate {gate_str}, official rasters "
+        f"{n_data_ok}/3 hash-verified, pytest {tests_str}, site rebuild "
+        f"{'drift-free' if site_drift_free else 'DRIFT OR BUILD FAILURE'}, "
+        f"account-status re-audited ({dup_str}).")
+
 record = {
     "session": stamp,
     "generated_utc": now,
-    "branch": "arena/01a0dba8-6gemsdoe",
-    "note": "Pass-1 re-verification this session: gate 13/13 PASS, all three official rasters hash-verified, pytest 46/46 PASS, account-status re-audited (still flagged).",
+    "branch": branch,
+    "note": note,
     "submission_file": {
         "path": str(SUB.relative_to(REPO_ROOT)),
         "sha256": sub_sha,
         "sha256_matches_expected": sub_sha == EXPECTED_SHA,
         "expected_sha256": EXPECTED_SHA,
         "bytes": SUB.stat().st_size,
-        "gate": f"{n_pass}/{n_total} {'PASS' if rep.ok else 'FAIL'}",
-        "gate_ok": rep.ok,
+        "gate": gate_str,
+        "gate_ok": bool(rep.ok),
         "nan_inside_footprint": gate["stats"]["nan_inside_footprint"],
         "finite_outside_footprint": gate["stats"]["finite_outside_footprint"],
         "positive_pixels": gate["stats"]["positive_pixels"],
@@ -96,7 +151,7 @@ record = {
         "strategy": "topk_hard@0.03 (HistGradientBoosting, 88 channels)",
     },
     "data_verification": {
-        "ok": all(d["sha_ok"] for d in data_files.values()) and all(d["exists"] for d in data_files.values()),
+        "ok": bool(data_ok),
         "files": data_files,
     },
     "tests": {
@@ -104,9 +159,20 @@ record = {
         "passed": tests_passed,
         "failed": tests_failed,
         "pytest_exit_code": pytest.returncode,
+        "pytest_summary_line": _pytest_tail,
         "suites": ["test_gate.py", "test_metric.py", "test_spec_and_cv.py"],
     },
-    "site_build": "scripts/build_site.py runs without error; index.html, verification.html, research.html regenerated.",
+    "site_build": {
+        "build_exit_code": site.returncode,
+        "build_ok": bool(site_build_ok),
+        "drift_free": bool(site_drift_free),
+        "drifted_files": site_drift,
+        "note": ("scripts/build_site.py re-ran and the committed HTML was "
+                 "byte-identical (no drift)"
+                 if site_drift_free else
+                 "SITE DRIFT OR BUILD FAILURE — committed HTML does not match "
+                 "a fresh build; inspect before publishing."),
+    },
     "account_status": {
         "canonical_repo": "6GEMSDOE",
         "canonical_site": "https://buffedlizard55-lab.github.io/6GEMSDOE/",
@@ -122,11 +188,11 @@ record = {
         "note": "Proxy scores against the public catalogue on spatially blocked, buffered folds (4x4 blocks, 300 m buffer). Not leaderboard values: the leaderboard scores faults missing from the catalogue.",
     },
     "limitations_and_blockers": [
-        "No DrivenData credentials in this sandbox: cannot read the public leaderboard, cannot submit, cannot download the official data tab directly. Data transport uses a sha256-pinned codeload bridge through buffedlizard55-lab/GEMSDOE.",
+        "No DrivenData credentials in this sandbox: cannot read the public leaderboard, cannot submit, cannot download the official data tab directly. The official bytes are carried as sha256-pinned parts committed under data/bridge/ in THIS repo and re-verified on every placement (no cross-repo dependency since 2026-09-26).",
         "The sandbox has 2 CPUs, ~4 GB RAM, no GPU: training the reference U-Net (ResNet-18) is out of scope here; the shipped model is HistGradientBoosting on sampled pixels.",
         "Egress to the USGS 3DEP 1 m DEM bucket is blocked here, so the 1 m DEM link list (1m_DEM_links.csv) cannot be obtained directly from this host.",
         "The 11-repo duplication is a real compliance exposure under rules A.12/A.16 until the other ten are archived.",
-        "Account holder must confirm eligibility (rules §1.3: U.S. citizen/permanent resident, not Federal employee, not under 18) and write the generative-AI disclosure (§3.2).",
+        "Account holder must confirm eligibility (rules §1.3: U.S. citizen/permanent resident, not Federal employee, not under 18) and finalise the generative-AI disclosure draft (rules §3.2; see NARRATIVES.md).",
     ],
 }
 
