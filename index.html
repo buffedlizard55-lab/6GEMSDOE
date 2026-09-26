@@ -82,8 +82,12 @@ GeoDAWN region of Nevada/California.</div>
   uploaded from any other copy. The other copies are not scoring arms of an experiment
   — they are duplicates of one project, and the eligibility and anti-fraud terms
   (Appendix A.12 due diligence and risk review; A.16 return of funds) are written to
-  catch exactly the practice of spreading one test across multiple sites. Recommended
-  action: keep this repo, and delete or archive the other ten.</p>
+  catch exactly the practice of spreading one test across multiple sites.</p>
+  <p><strong>Dependency resolved 2026-09-26:</strong> the sha256-pinned data bridge
+  (419&nbsp;MB in <code>data/bridge/</code>) is now committed directly into this
+  repository, so <code>scripts/fetch_and_verify_data.py</code> no longer pulls bytes
+  from any of the duplicate repos via codeload. The account holder can now archive
+  or delete the other ten safely.</p>
 </div>
 <div class="card">
   <h2>The executive summary</h2>

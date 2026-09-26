@@ -7,15 +7,14 @@ data/training_features.tif
 
 # ---------------------------------------------------------------------------
 # Bridge transport parts (419 MB once reassembled) and the bridge copies of the
-# two small rasters. Not committed, for the same reason as the reassembled
-# raster itself: they are reproducible from the pinned mirror by
-# scripts/fetch_and_verify_data.py, and every hash is re-verified on placement.
-# Only data/bridge/manifest.json is committed — it is 4 KB and it is the record
-# of what was transported.
+# two small rasters ARE committed to THIS repository. Reason: earlier versions
+# of this project fetched them via codeload from a duplicate repository
+# (buffedlizard55-lab/GEMSDOE), which created an eligibility-relevant dependency
+# on a repo we intend to archive. The parts are sha256-pinned in
+# data/bridge/manifest.json (and re-verified in src/gems/spec.py), so hosting a
+# first-party copy here is auditable and removes the cross-repo dependency.
 # ---------------------------------------------------------------------------
-data/bridge/*.part-*
-data/bridge/existing_faults.tif
-data/bridge/example_submission.tif
+# (no longer ignored — the pinned parts live in this repo now)
 
 # ---------------------------------------------------------------------------
 # Derived artifacts: 12,279,160 px x 105 channels x 4 B ~= 4.9 GB + a 12 MB mask.

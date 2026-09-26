@@ -82,23 +82,20 @@ Two specific hazards:
    one site multiplies the three-per-week allowance, which is precisely what the
    limit forbids.
 
-## One dependency to be aware of before deleting anything
+## Dependency resolved this session (2026-09-26 03:10 UTC)
 
 This repository's official rasters are **sha256-pinned** and re-verified on every
-placement (`scripts/fetch_and_verify_data.py`). The pinned transport currently
-resolves through `buffedlizard55-lab/GEMSDOE`, one of the duplicate repositories
-(`--source codeload`). That is a **byte transport, not a second entry**: the parts
-are trusted because each one's sha256 matches the pin in `src/gems/spec.py`, not
-because of which repository served them, and the reassembled file's hash is
-re-checked before it is written into `data/`. Verified this session — the 418,912,844-byte
-`training_features.tif` was placed and its sha256 confirmed as
-`4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5`.
-
-**Practical consequence:** if the duplicate repositories are deleted, this data
-path must be replaced first — either by downloading the three files from the
-official data tab while signed in to DrivenData, or by keeping a first-party copy
-of the pinned parts. Do not delete the duplicates and then discover the bytes are
-gone.
+placement (`scripts/fetch_and_verify_data.py`). Previously the pinned transport
+resolved through `buffedlizard55-lab/GEMSDOE` via codeload, which was a
+byte-transport dependency on one of the duplicate repositories. That dependency
+has been removed: the seven pinned bridge files (five parts + the two small
+rasters, totalling 419 MB) are now committed directly under `data/bridge/` in
+`6GEMSDOE`, and the script reassembles `data/training_features.tif` locally with
+no outbound call. Every part's sha256 is still verified against the pins in
+`data/bridge/manifest.json` and `src/gems/spec.py`, and the reassembled file's
+hash is re-checked before it is written into `data/`. Verified this session —
+the 418,912,844-byte `training_features.tif` was placed from local parts and its
+sha256 confirmed as `4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5`.
 
 ## Decision and actions
 
@@ -130,8 +127,10 @@ gone.
 ## Recommended remediation
 
 1. Keep `6GEMSDOE` (this repo) as the only entry and the only published site.
-2. Move a first-party copy of the pinned data bridge into this repo (or download
-   the three official files from the data tab while signed in), **then** archive
-   the other ten repositories and delete them once the data path is confirmed.
+2. **The first-party data bridge is now in this repo** (`data/bridge/`, sha256
+   verified). The account holder can now safely archive or delete the other ten
+   GEMS-named repositories (GEMSDOE, GEMSDOE2, GEMSDOE3, GEMSDOE4, 5GEMSDOE,
+   7GEMSDOE, 8GEMSDOE, GEMSDOE9, GEMSDOE10, 11GEMSDOE) from the GitHub web UI
+   — this repo no longer pulls bytes from any of them.
 3. Record, in `SUBMISSION_GUIDE.md`, which DrivenData account is the entry and
    which submission file is selected as final.
