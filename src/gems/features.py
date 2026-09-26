@@ -312,8 +312,10 @@ def build_feature_stack(path: str, scales: tuple[int, ...] = (1, 2, 4)
     vg_mag = bands["tmi_vg"]
 
     # --- potential-field edges (the task brief's first priority) -------------
-    feats["mag_hgm_from_parts"] = horizontal_gradient_magnitude(hg_mag,
-                                                                np.zeros_like(hg_mag))
+    # hg_mag is already the provider's horizontal-gradient magnitude (|∇TMI|);
+    # so |hg_mag| (magnitude of a magnitude) is just its absolute value — kept
+    # as a passthrough for model convenience, not as new information.
+    feats["mag_hgm_from_parts"] = np.abs(hg_mag)
     feats["mag_asa"] = analytic_signal([hg_mag, vg_mag])       # sqrt(hg^2+vg^2)
     feats["mag_tilt"] = tilt_angle(vg_mag, np.abs(hg_mag))
     tmi_gx, tmi_gy = derivatives(tmi)

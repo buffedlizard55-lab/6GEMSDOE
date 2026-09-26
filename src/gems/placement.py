@@ -50,7 +50,8 @@ def breakeven_posterior(k: float) -> float:
 
 def breakeven_table() -> dict[float, float]:
     """q* at each achievable kernel weight on the 100 m grid."""
-    ks = [1.0, 2.0 / 3.0, float(np.cos(np.pi / 4)) * 0 + 1 - np.sqrt(2) / 3,
+    # kernel weights for integer offsets with d <= 3 px: 0, 1, sqrt2, 2, sqrt5, sqrt8, 3 px
+    ks = [1.0, 2.0 / 3.0, 1.0 - np.sqrt(2) / 3,
           1.0 / 3.0, 1.0 - np.sqrt(5) / 3, 1.0 - np.sqrt(8) / 3, 0.0]
     return {round(k, 4): round(breakeven_posterior(k), 5) for k in sorted(set(ks), reverse=True)}
 

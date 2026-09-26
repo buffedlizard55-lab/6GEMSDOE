@@ -1,7 +1,9 @@
 # Next steps — ordered by expected effect on P(win)
 
-Status 2026-09-26. Data placement is solved (all three official rasters placed and
-hash-verified this session — 418,912,844 B, sha256 4371c82e… OK; see `data/evidence/data_verification.json`). Format is solved and gated. The remaining work is model
+Status 2026-09-26 01:19 UTC (re-verified this session: gate 13/13 PASS, hashes 3/3 OK,
+`pytest` 46/46 PASS; see `data/evidence/session_reverification_2026-09-26T0119Z.json`).
+Data placement is solved (all three official rasters placed and
+hash-verified — 418,912,844 B, sha256 4371c82e… OK; see `data/evidence/data_verification.json`). Format is solved and gated. The remaining work is model
 quality against the *unmapped-fault* target, and the compliance items.
 
 ## P0 — do these before spending any submission slot

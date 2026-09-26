@@ -26,8 +26,8 @@ until the file has passed `scripts/validate_submission.py` locally.
 
 ## 2. What the file must satisfy (all rules quoted from the official pages)
 
-Re-fetched and re-checked on 2026-09-25 and **re-verified 2026-09-26** from
-<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/> (both chunks fetched via platform fetcher; submission format, metric, and worked example re-confirmed).
+Re-fetched and re-checked on 2026-09-25 and **re-verified 2026-09-26 00:20 UTC and again 01:19 UTC** from
+<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/> (both chunks fetched via platform fetcher; submission format, metric, and worked example re-confirmed; gate 13/13 PASS, hashes 3/3 OK — `data/evidence/session_reverification_2026-09-26T0119Z.json`).
 
 | Rule | Requirement | Source |
 |---|---|---|

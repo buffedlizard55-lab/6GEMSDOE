@@ -5,7 +5,7 @@ Where a claim originates in the task brief rather than in an official document, 
 is said so explicitly. **Claims that failed verification are recorded here, not
 quietly dropped.**
 
-Checked 2026-09-25 (UTC), re-checked later the same day after the modelling work, and **re-verified 2026-09-26 (UTC)** before any other work this session — official pages re-fetched via the platform fetcher, official rasters re-verified with `scripts/fetch_and_verify_data.py` (3/3 hashes OK), submission re-gated with `scripts/validate_submission.py` (13/13 PASS), and grid constants re-measured with `scripts/analysis.py --only spec,baselines,bands`. The rules PDF was fetched at
+Checked 2026-09-25 (UTC), re-checked later the same day after the modelling work, **re-verified 2026-09-26 00:20 UTC** before any other work that session — official pages re-fetched via the platform fetcher, official rasters re-verified with `scripts/fetch_and_verify_data.py` (3/3 hashes OK), submission re-gated with `scripts/validate_submission.py` (13/13 PASS), and grid constants re-measured with `scripts/analysis.py --only spec,baselines,bands` — and **re-verified again 2026-09-26 01:19 UTC** in this session (gate 13/13 PASS, hashes 3/3 OK, `pytest` 46/46 PASS; `data/evidence/session_reverification_2026-09-26T0119Z.json`). The rules PDF was fetched at
 <https://www.nlr.gov/docs/fy26osti/96647.pdf>, which redirects to `docs.nlr.gov`;
 the document is titled "Geologic Enhanced Mapping System (GEMS) Prize Official
 Rules", September 2026.
