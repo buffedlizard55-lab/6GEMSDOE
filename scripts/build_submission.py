@@ -15,6 +15,8 @@ The output name is content-addressed and carries the strategy + model tag so tha
 later attempts can be told apart (the brief asks for exactly that).
 
     python scripts/build_submission.py --tag hgb48-densified
+    python scripts/build_submission.py --tag hgb105-topk03-g25 --n-channels 105 \\
+        --strategy topk_gate@0.03 --gate g25_4 --pos-weight itrace --save-prob
 """
 
 from __future__ import annotations
@@ -48,9 +50,41 @@ def load_truth():
     return (lab == 1), footprint
 
 
+def itrace_weights(gt: np.ndarray) -> np.ndarray | None:
+    """PU-style positive weights: 1/sqrt(trace length), normalised to mean 1.
+
+    The catalogue over-represents long, thoroughly mapped faults (their pixels
+    dominate the positive class) while both scored rounds contain faults that
+    are MISSING from it — short, un-mapped segments. Down-weighting pixels on
+    long traces (exactly the same rule scripts/experiment.py --pos-weight uses)
+    keeps the classifier from memorising the catalogue's line density.
+    """
+    from scipy import ndimage
+    trace_id, n_trace = ndimage.label(gt, structure=np.ones((3, 3), dtype=int))
+    lens = np.bincount(trace_id.ravel(), minlength=n_trace + 1)
+    raw = 1.0 / np.sqrt(lens[trace_id].astype(np.float64))
+    # Background weight MUST be 1.0, not 0.0: sample_weight=0 drops a sample
+    # from the fit entirely and would delete every negative pixel.
+    w = np.ones(gt.shape, dtype=np.float32)
+    w[gt] = raw[gt]
+    w[gt] = w[gt] / w[gt].mean()
+    return w
+
+
+def build_gate(meta_channels: list[str], mm: np.ndarray, name: str) -> np.ndarray:
+    """The cross-family agreement gate, identical to scripts/experiment.py."""
+    if name == "g25_4":
+        i = meta_channels.index("n_agree_top25")
+        return np.asarray(mm[:, :, i] >= 4, dtype=bool)
+    if name == "g10_4":
+        i = meta_channels.index("n_agree_top10")
+        return np.asarray(mm[:, :, i] >= 4, dtype=bool)
+    raise ValueError(f"unknown gate {name!r} (expected g25_4 or g10_4)")
+
+
 def train_model(mm_path: Path, n_channels: int, gt: np.ndarray,
                 footprint: np.ndarray, max_neg: int, seed: int = 7,
-                iters: int = 300):
+                iters: int = 300, pos_weight: np.ndarray | None = None):
     from sklearn.ensemble import HistGradientBoostingClassifier
 
     mm = np.load(mm_path, mmap_mode="r")
@@ -63,13 +97,15 @@ def train_model(mm_path: Path, n_channels: int, gt: np.ndarray,
     rows, cols = np.unravel_index(sel, gt.shape)
     X = np.asarray(mm[rows, cols, :n_channels], dtype=np.float32)
     y = gt.ravel()[sel].astype(np.uint8)
+    w = pos_weight[rows, cols].astype(np.float32) if pos_weight is not None else None
     model = HistGradientBoostingClassifier(
         max_iter=iters, learning_rate=0.08, max_leaf_nodes=31,
         min_samples_leaf=40, l2_regularization=1.0, random_state=seed,
         early_stopping=False)
-    model.fit(X, y)
+    model.fit(X, y, sample_weight=w)
     return model, {"n_pos": int(pos.size), "n_neg": int(n_neg),
-                   "n_features": int(X.shape[1]), "max_iter": int(iters)}
+                   "n_features": int(X.shape[1]), "max_iter": int(iters),
+                   "sample_weight": "itrace" if w is not None else "none"}
 
 
 def predict_full(mm_path: Path, model, footprint: np.ndarray, n_channels: int,
@@ -101,7 +137,18 @@ def main() -> int:
                          "multi-scale channels did not improve the score, so the "
                          "shipped model uses the validated subset.")
     ap.add_argument("--threshold", type=float, default=0.10)
-    ap.add_argument("--strategy", default="densified")
+    ap.add_argument("--strategy", default="densified",
+                    help="any name from src/gems/placement.py; the gated variant "
+                         "is topk_gate@<frac> (requires --gate)")
+    ap.add_argument("--gate", choices=["none", "g25_4", "g10_4"], default="none",
+                    help="cross-family agreement gate for topk_gate@ strategies "
+                         "(identical definitions to scripts/experiment.py)")
+    ap.add_argument("--pos-weight", choices=["none", "itrace"], default="none",
+                    help="itrace = PU-style 1/sqrt(trace length) positive weights "
+                         "(same rule as scripts/experiment.py --pos-weight)")
+    ap.add_argument("--save-prob", action="store_true",
+                    help="also save the raw probability surface as float32 npy "
+                         "(~49 MB, evidence-only, used by candidate_writeup.py)")
     ap.add_argument("--out-dir", default=str(DOWNLOADS))
     args = ap.parse_args()
 
@@ -116,16 +163,40 @@ def main() -> int:
     print(f"[{time.time()-t0:6.1f}s] footprint {int(footprint.sum())} px, "
           f"positives {int((gt & footprint).sum())}")
 
+    pos_weight = None
+    if args.pos_weight == "itrace":
+        pos_weight = itrace_weights(gt)
+        print("pos_weight=itrace (1/sqrt(trace length), normalised to mean 1)")
+
+    gate = None
+    if args.strategy.startswith("topk_gate@"):
+        if args.gate == "none":
+            raise SystemExit("--gate g25_4|g10_4 is required for topk_gate@ strategies")
+        mm = np.load(args.features, mmap_mode="r")
+        gate = build_gate(channels, mm, args.gate)
+        print(f"gate={args.gate}: {int(gate.sum()):,} px")
+        del mm
+    elif args.gate != "none":
+        print(f"note: --gate {args.gate} ignored (strategy {args.strategy!r} is not gated)")
+
     model, train_info = train_model(Path(args.features), n_channels, gt,
-                                    footprint, args.max_neg, iters=args.iters)
+                                    footprint, args.max_neg, iters=args.iters,
+                                    pos_weight=pos_weight)
     print(f"[{time.time()-t0:6.1f}s] trained on {train_info}")
 
     prob = predict_full(Path(args.features), model, footprint, n_channels)
     print(f"[{time.time()-t0:6.1f}s] predicted full footprint; "
           f"max={prob.max():.4f} mean_pos={prob[prob>0].mean():.4f}")
 
+    if args.save_prob:
+        EV.mkdir(parents=True, exist_ok=True)
+        prob_path = EV / f"prob_{args.tag}.f32.npy"
+        np.save(prob_path, prob.astype(np.float32))
+        print(f"saved probability surface -> {prob_path} "
+              f"({prob_path.stat().st_size / 1e6:.1f} MB)")
+
     placed = placement.get_strategy(args.strategy, prob, footprint,
-                                    threshold=args.threshold)
+                                    threshold=args.threshold, gate=gate)
     placed = np.where(footprint, placed, 0.0).astype(np.float32)
 
     out_dir = Path(args.out_dir)
@@ -145,7 +216,10 @@ def main() -> int:
         "gate_ok": report.ok,
         "gate": report.as_dict(),
         "strategy": args.strategy,
+        "agreement_gate": args.gate if args.strategy.startswith("topk_gate@") else None,
         "threshold": args.threshold,
+        "pos_weight": args.pos_weight,
+        "prob_surface": (f"prob_{args.tag}.f32.npy" if args.save_prob else None),
         "model": (f"HistGradientBoostingClassifier(max_iter={args.iters}, "
                   "lr=0.08, max_leaf_nodes=31, min_samples_leaf=40, "
                   "l2_regularization=1.0)"),

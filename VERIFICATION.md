@@ -47,6 +47,7 @@ Rules", September 2026.
 | Faults are a small minority of the area | page 967 ("faults … cover a small fraction") / measured | **Measured: 60,988 of 5,167,373 scored pixels = 1.18%** (0.50% of the full grid) |
 | The official grid is 3730 × 3292 at 100 m, EPSG:32611, origin (243350, 4508550) | measured from the bytes | Confirmed; `scripts/analysis.py --only spec` re-measures it |
 | Official file hashes | measured from the bytes | All eight pins re-verified (5 transport parts + 3 whole files) |
+| Every bibliographic reference in the research table | re-resolved by hand, 2026-09-25 | **Three earlier citations carried DOIs that belonged to unrelated papers** (Miller & Singh 1994; Zevenbergen & Thorne 1987; Bigun & Granlund 1987) and two carried paraphrased titles (Verduzco 2004; Roest 1992). All are corrected in the research table and the full audit with the wrong→right mapping is in `RESEARCH.md` §7. |
 
 ## 3. Claims verified FALSE, or partly wrong
 
@@ -73,10 +74,10 @@ wrong figure is exactly what this project is trying to avoid.
 | `pip install` requires `--break-system-packages` (PEP 668) | install refused without the flag |
 | Bash egress is allowlisted: `pypi.org` and `github.com` work; `www.drivendata.org`, `www.nlr.gov`, `www.osti.gov`, `raw.githubusercontent.com` do not connect from bash | TLS/SSL errors; the official pages were therefore read through the platform's page fetcher, and repo files via `git`/GitHub API |
 | 2 CPUs, **3.9 GB** RAM, ~20 GB free disk, no GPU | `nproc`, `free`, `df` |
-| Full-resolution derived stack does not fit in RAM | 12,279,160 px × 88 channels × 4 B = 4.3 GB, hence the tile-streaming builder and the disk-backed memmap |
+| Full-resolution derived stack does not fit in RAM | 12,279,160 px × 105 channels × 4 B ≈ 4.9 GB, hence the tile-streaming builder and the disk-backed memmap |
 | `codeload.github.com` **does** work where `raw.githubusercontent.com` and `objects.githubusercontent.com` do not (SSL error) | curl: 200 with a 407 MB tarball in 23 s vs `000` for the other two hosts. This is the only reason the pinned data bridge can be fetched from this sandbox at all |
 | Egress to `www.sciencebase.gov` and `drivendata-public-assets.s3.amazonaws.com` is blocked | curl returns `000` / SSL error. Blocks direct retrieval of the 1 m DEM tile list and of the competition's own figure assets |
-| The feature stack rebuild costs ~11 minutes for 88 channels | `scripts/build_features.py`, `build_seconds = 643.1`, 8 row tiles with a 40 px halo |
+| The feature stack rebuild costs ~15 minutes for 105 channels | `scripts/build_features.py`, `build_seconds = 917.1`, 8 row tiles with a 40 px halo; the 88-channel build before the agreement channels was 643.1 s |
 
 ## 5. How to re-verify everything in this file
 
@@ -85,8 +86,10 @@ python scripts/fetch_and_verify_data.py --check          # all three official ra
 python scripts/analysis.py --only spec       # re-measures the pinned constants
 python scripts/analysis.py --only baselines  # exact DTI for the degenerate cases
 python scripts/analysis.py --only bands      # resolves the ambiguous band semantics
-python scripts/build_features.py             # 88-channel stack (disk-backed, ~11 min)
-python scripts/experiment.py --configs baseline,extended  # controlled A/B on blocked folds
+python scripts/build_rank_tables.py          # percentile-rank LUTs for the agreement channels (~2 min)
+python scripts/build_features.py             # 105-channel stack (disk-backed, ~15 min)
+python scripts/experiment.py --configs baseline,extended,agreement  # controlled A/B on blocked folds
+python scripts/candidate_writeup.py --submission downloads/<file>.tif --prob data/evidence/prob_<tag>.f32.npy
 python -m pytest tests/ -q                   # metric + gate + spec + placement tests
 python scripts/validate_submission.py <file> # the hard gate
 

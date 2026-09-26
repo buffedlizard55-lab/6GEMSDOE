@@ -42,7 +42,7 @@ this one competition, and **GitHub Pages is enabled and built on all eleven**.
 | `GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 400,811 | 2026-09-24T23:07:17Z |
 | `GEMSDOE2` | full site + `data/` + `scripts/` + `src/` | built | 421,640 | 2026-09-25T17:32:05Z |
 | `GEMSDOE3` | full site + `data/` + `evidence/` + `scripts/` + `src/` | built | 24,765 | 2026-09-25T17:36:01Z |
-| `GEMSDOE4` | full site + `data/` + `scripts/` + `src/` | built | 0 | 2026-09-25T18:16:36Z |
+| `GEMSDOE4` | full site + `data/` + `scripts/` + `src/` + `docs/` (promoted from a README stub to a full copy on 2026-09-25T21:03Z) | built | 55,484 | 2026-09-25T21:03:01Z |
 | `5GEMSDOE` | full site + `data/` + `scripts/` + `src/` | built | 398,219 | 2026-09-25T19:41:12Z |
 | **`6GEMSDOE`** | **this repository — the designated single entry** | built | 0 | 2026-09-25T19:49:52Z |
 | `7GEMSDOE` | `README.md` only | built | 0 | 2026-09-25T18:22:03Z |

@@ -3,7 +3,7 @@
   "shape": [
     3730,
     3292,
-    88
+    105
   ],
   "channels": [
     "mag_anom",
@@ -93,12 +93,31 @@
     "lin_cond_energy_s2",
     "lin_cond_coherence_s2",
     "lin_rtp_energy_s2",
-    "lin_rtp_coherence_s2"
+    "lin_rtp_coherence_s2",
+    "famrank_mag",
+    "famrank_grav",
+    "famrank_strain",
+    "famrank_seis",
+    "famrank_cond",
+    "famrank_topo",
+    "n_avail_fam",
+    "max_famrank",
+    "mean_famrank",
+    "min_famrank",
+    "n_agree_top10",
+    "n_agree_top25",
+    "n_agree_top50",
+    "agree_strain_seis",
+    "agree_strain_cond",
+    "agree_seis_cond",
+    "agree_strain_seis_cond"
   ],
   "invalid_pixels": 7113320,
   "valid_all_band_pixels": 5165840,
   "tile_rows": 512,
   "halo": 40,
-  "built_utc": "2026-09-25T20:38:07Z",
-  "build_seconds": 643.1
+  "rank_tables_sha256": "64a62c3b3e9925ba19a43276af1d931863d81906d26f0b06c8fb74f3fe53c0ae",
+  "features_sha256": "4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5",
+  "built_utc": "2026-09-25T23:20:50Z",
+  "build_seconds": 917.1
 }

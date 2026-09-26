@@ -131,10 +131,28 @@ def main() -> int:
             manifest = _load_manifest()
         except FileNotFoundError:
             manifest = None
-        if manifest is None or args.source == "codeload":
+        # The committed manifest exists but the 419 MB parts are gitignored and
+        # may be absent on a fresh checkout. The documented source order is
+        # parts -> codeload -> mirror, so in auto mode we still go to codeload
+        # (which adds the missing parts) before falling back to the Dropbox
+        # mirror. Without this, a fresh clone with only the manifest skips the
+        # one transport this sandbox can actually reach.
+        missing_parts = False
+        if manifest is not None:
+            for e in manifest["files"]:
+                if e.get("parts") and not all(
+                        (BRIDGE_DIR / p["name"]).exists() for p in e["parts"]):
+                    missing_parts = True
+                    break
+        if manifest is None or args.source == "codeload" \
+                or (args.source == "auto" and missing_parts):
             try:
-                manifest = fetch_manifest_from_codeload(tmp)
+                fetched = fetch_manifest_from_codeload(tmp)
                 print("[ok] manifest fetched via codeload")
+                # If the local manifest was already loaded, keep it; the codeload
+                # copy is only used when we had nothing local.
+                if manifest is None:
+                    manifest = fetched
             except Exception as exc:  # pragma: no cover
                 print(f"[!] codeload unavailable: {exc}")
     if manifest is None:

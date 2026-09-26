@@ -98,7 +98,7 @@ necessary licenses" ([competition home](https://www.drivendata.org/competitions/
 |---|---|---|
 | GeoDAWN airborne magnetic + radiometric surveys | the feature backbone | <https://doi.org/10.5066/P93LGLVQ> |
 | INGENIOUS Great Basin Regional Dataset Compilation | the training labels | <https://doi.org/10.15121/1881483> |
-| USGS 3DEP 1 m DEM tiles | scarp-scale topography (not yet used) | bucket `prd-tnm.s3.amazonaws.com`, prefix `StagedProducts/Elevation/1m/Projects/` |
+| USGS 3DEP 1 m DEM tiles | scarp-scale topography (not yet used) | bucket `prd-tnm.s3.amazonaws.com`, prefix `StagedProducts/Elevation/1m/Projects/` (verified 2026-09-25); the newer seamless 1 m collection is the cleaner authoritative source to re-derive the tile list from: <https://doi.org/10.5066/P13LJKFS> |
 | USGS Quaternary Fault and Fold Database | label provenance | <https://earthquake.usgs.gov/hazards/qfaults/> |
 | Competition-cited prior art | Mattéo et al. 2021; Hermant et al. 2025 | see `research.html` on the site |
 

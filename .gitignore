@@ -18,8 +18,13 @@ data/bridge/existing_faults.tif
 data/bridge/example_submission.tif
 
 # ---------------------------------------------------------------------------
-# Derived artifacts: 12,279,160 px x 48 channels x 4 B = 2.25 GB + a 12 MB mask.
-# Rebuilt in ~2 minutes by scripts/build_features.py (streaming, tile by tile).
+# Derived artifacts: 12,279,160 px x 105 channels x 4 B ~= 4.9 GB + a 12 MB mask.
+# Rebuilt in ~15 minutes by scripts/build_features.py (streaming, tile by tile).
+# rank_tables.json (13 MB) is derived the same way: scripts/build_rank_tables.py
+# rebuilds it from the sha256-pinned rasters in ~2 minutes, and it carries the
+# rasters' own hashes, so committing it buys nothing but churn.
+# prob_*.f32.npy are the raw probability surfaces saved for the candidate
+# writeup (~49 MB each); rebuilt by any build_submission.py --save-prob run.
 # ---------------------------------------------------------------------------
 data/evidence/features.f32.npy
 data/evidence/_invalid_allband.npy
@@ -38,3 +43,8 @@ dist/
 # are the audit trail the site renders, and they are small.
 !data/evidence/*.json
 !downloads/*.tif
+
+# ...except these two: big derived artifacts, rebuilt from the pinned rasters
+# (the rule above would re-include them, so they are listed after it).
+data/evidence/rank_tables.json
+data/evidence/prob_*.f32.npy

@@ -35,14 +35,26 @@ quality against the *unmapped-fault* target, and the compliance items.
    "may not be the same as the final scores on the private leaderboard".
 6. **Attack the actual target instead of the catalogue.** Everything here is trained to
    reproduce faults that are already mapped, and both rounds score faults that are
-   not. Concretely, next:
-   - train with the *easy* catalogue faults down-weighted (they are the ones already
-     mapped, so they are least like the private set) — a cheap, principled PU-style
-     reweighting;
+   not. Two of the three candidates are now **measured, both losing**:
+   - *PU-style down-weighting of easy (long) catalogue traces* — `--pos-weight itrace`,
+     run at the shipped scale on 88 and 105 channels: 0.1650 / 0.1631 at a 3% budget
+     vs 0.1698 / 0.1670 unweighted, and lower on every robustness column
+     (`data/evidence/experiments_itrace.json`). The hypothesis (the private set is
+     short unmapped traces, so long mapped ones should be de-emphasised) did not
+     survive contact with the folds: the easiest positives carry the cleanest signal
+     of the physical mechanisms, and down-weighting them weakens the anchor of the
+     whole probability surface. Do not retry.
+   - *Explicit cross-family agreement channels and an agreement-gated placement* —
+     `data/evidence/experiments_agreement.json`. The channels are a wash-to-negative
+     on the shipping axis (+1% only on the hard trace-removed simulation at 2%);
+     the gate loses decisively (0.112–0.116). Do not retry at this budget; the
+     machinery stays in the repo as Phase-2 evidence tooling.
+   Still open:
    - build a semi-supervised target: the model's own high-confidence predictions in
      held-out blocks, verified against independent signals (magnetics + gravity +
      strain + seismicity agreeing), used as additional positives for a second pass;
-   - hold out whole fault *systems*, not just blocks, and measure rediscovery.
+   - hold out whole fault *systems* (`--trace-holdout` exists for the diagnostic
+     form; whole-system holdout is not yet implemented).
 7. **Add the 1 m DEM.** The largest untapped signal and the sharpest expression of
    fault scarps. The link list is OCR-derived from a PDF with no text layer, so it must
    be re-derived from the authoritative USGS 3DEP bucket listing, not trusted. Needs an
@@ -94,3 +106,19 @@ quality against the *unmapped-fault* target, and the compliance items.
 * **Choosing the budget by its score on the full catalogue.** The nominal optimum
   shifts from 5% to 2% as the ground-truth set shrinks; 3% is the minimax-regret
   choice on both the 4×4 and the 6×6 blocking.
+* **Gated top-k placement** (`topk_gate@<frac>` with the cross-family agreement
+  gate): 0.112–0.116 vs 0.167–0.170 for the ungated top-k in every channel
+  configuration (`data/evidence/experiments_agreement.json`). The gate excludes
+  catalogue faults the model already scores well; a budget spent on a stricter,
+  less-likely set cannot beat the probability order.
+* **The 17 cross-family agreement channels at the shipped budget**: 0.1670 (105ch)
+  vs 0.1698 (88ch) at 3% on the full catalogue; the hard (trace-removed) simulation
+  moves the other way (+1% at 2%). Not strictly better on the shipping axis — the
+  88-channel file stays. The machinery (rank tables, `famrank_*`/`n_agree_*`
+  channels, `gated_topk`) is kept in the repo for the Phase-2 evidence record
+  (`scripts/candidate_writeup.py` uses the same family ranks).
+* **PU-style inverse-trace-length positive weights** (`--pos-weight itrace`):
+  0.1650 (88ch) / 0.1631 (105ch) at 3% vs 0.1698 / 0.1670 unweighted — lower on
+  every robustness column too (`data/evidence/experiments_itrace.json`). The
+  easiest catalogue traces carry the cleanest physical signal; down-weighting
+  them weakens the anchor of the probability surface.
