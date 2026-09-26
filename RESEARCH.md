@@ -1,6 +1,6 @@
 # Research — the science behind the solution, with every source verified
 
-Every source below was **fetched or resolved on 2026-09-25 (UTC) in this session** —
+Every source below was **fetched or resolved on 2026-09-25 (UTC) and re-verified 2026-09-26 (UTC)** —
 not copied from memory. For each entry: what it is, the link for manual review, and
 what was actually checked. Where a citation in the earlier version of this project
 was found to be **wrong, the correction is recorded in §7** rather than silently

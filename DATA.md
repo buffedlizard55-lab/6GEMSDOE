@@ -4,7 +4,7 @@
 
 The competition supplies its data on a **login-gated** page:
 <https://www.drivendata.org/competitions/306/competition-doe-gems/data/> —
-unauthenticated requests redirect to `/accounts/login/` (re-verified 2026-09-25).
+unauthenticated requests redirect to `/accounts/login/` (re-verified 2026-09-25 and 2026-09-26).
 The filenames as published on that page are the middle column below; the competition
 prose calls them `training_features.tif`, `labels.tif` and `sample_submission.tif`,
 which is why both names appear throughout this repo.
@@ -29,8 +29,8 @@ which is why both names appear throughout this repo.
    disagree with `src/gems/spec.py` — so the transport repo is trusted only insofar as
    its bytes hash correctly.
 
-**Independently re-verified on 2026-09-25**: all five parts (size + sha256), the
-reassembled 418,912,844-byte file, and both small files. All eight hashes matched.
+**Independently re-verified on 2026-09-25 and 2026-09-26**: all five parts (size + sha256), the
+reassembled 418,912,844-byte file, and both small files. All eight hashes matched (2026-09-26: `scripts/fetch_and_verify_data.py` 3/3 OK, `scripts/validate_submission.py` 13/13 PASS).
 
 The 419 MB stack is deliberately **not committed** to git (`data/training_features.tif`
 is in `.gitignore`); it is fetched and hash-verified on demand. The two small files
@@ -98,7 +98,7 @@ necessary licenses" ([competition home](https://www.drivendata.org/competitions/
 |---|---|---|
 | GeoDAWN airborne magnetic + radiometric surveys | the feature backbone | <https://doi.org/10.5066/P93LGLVQ> |
 | INGENIOUS Great Basin Regional Dataset Compilation | the training labels | <https://doi.org/10.15121/1881483> |
-| USGS 3DEP 1 m DEM tiles | scarp-scale topography (not yet used) | bucket `prd-tnm.s3.amazonaws.com`, prefix `StagedProducts/Elevation/1m/Projects/` (verified 2026-09-25); the newer seamless 1 m collection is the cleaner authoritative source to re-derive the tile list from: <https://doi.org/10.5066/P13LJKFS> |
+| USGS 3DEP 1 m DEM tiles | scarp-scale topography (not yet used) | bucket `prd-tnm.s3.amazonaws.com`, prefix `StagedProducts/Elevation/1m/Projects/` (verified 2026-09-25 and re-verified 2026-09-26 — still blocked in this sandbox, so not fetched here); the newer seamless 1 m collection is the cleaner authoritative source to re-derive the tile list from: <https://doi.org/10.5066/P13LJKFS> |
 | USGS Quaternary Fault and Fold Database | label provenance | <https://earthquake.usgs.gov/hazards/qfaults/> |
 | Competition-cited prior art | Mattéo et al. 2021; Hermant et al. 2025 | see `research.html` on the site |
 

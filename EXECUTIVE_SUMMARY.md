@@ -26,8 +26,8 @@ until the file has passed `scripts/validate_submission.py` locally.
 
 ## 2. What the file must satisfy (all rules quoted from the official pages)
 
-Re-fetched and re-checked on 2026-09-25 from
-<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/>.
+Re-fetched and re-checked on 2026-09-25 and **re-verified 2026-09-26** from
+<https://www.drivendata.org/competitions/306/competition-doe-gems/page/967/> (both chunks fetched via platform fetcher; submission format, metric, and worked example re-confirmed).
 
 | Rule | Requirement | Source |
 |---|---|---|
@@ -134,8 +134,7 @@ in the worst.
 * **The official bytes are hash-verified.** `data/training_features.tif`
   (418,912,844 B, sha256 `4371c82e…`), `data/labels.tif` (425,830 B, sha256
   `7ba308cc…`) and `data/sample_submission.tif` (1,599,597 B, sha256 `2176d08e…`)
-  were reassembled from sha256-pinned transport parts on 2026-09-25 and every hash
-  re-computed here. `src/gems/spec.py` holds the pins;
+  were reassembled from sha256-pinned transport parts and re-verified on 2026-09-26 (3/3 hashes OK; `scripts/fetch_and_verify_data.py` OK) and every hash re-computed here. `src/gems/spec.py` holds the pins;
   `scripts/fetch_and_verify_data.py` re-verifies them and refuses to place a
   mismatch.
 * **The grid constants are measured, not assumed** — 3730 × 3292, EPSG:32611, 100 m,
@@ -149,8 +148,7 @@ in the worst.
   on any violation, and it specifically refuses a file with a NaN inside the scored
   footprint — the condition that makes the submission form answer *"Predicted values
   must be in range [0, 1]"* even though every finite value is legal.
-  `tests/test_gate.py` proves it rejects exactly that file. Re-run on the shipped
-  file this session: 13/13 PASS.
+  `tests/test_gate.py` proves it rejects exactly that file. Re-run on the shipped file 2026-09-26: 13/13 PASS (`scripts/validate_submission.py`).
 * **The new harness reproduces the old number exactly.** `scripts/experiment.py` on
   the baseline 48-channel model gives `soft@0.3` = 0.1119 / min 0.0933 / max 0.1253 —
   identical to the value the previous submission was chosen on. So the improvements
