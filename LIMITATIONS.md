@@ -160,8 +160,12 @@ a limitation, but it is easy to forget at submission time — so it is listed he
 
 The two small official rasters (`labels.tif`, `sample_submission.tif`, ~2 MB) are
 committed because the on-site gate needs the authoritative footprint to compare
-against. The 419 MB feature stack is **not** committed; it is fetched and hash-verified
-by script. If the sponsor's terms are read as prohibiting redistribution of the
-provided rasters in a public repository, the small committed copies should be replaced
-with the hash-only manifest — the gate degrades gracefully (it reports that it cannot
-verify the footprint rather than silently passing).
+against. The 419 MB feature raster is stored in `data/bridge/` as sha256-pinned
+90 MB parts (each part below GitHub's 100 MB blob limit) and reassembled into
+`data/training_features.tif` by `scripts/fetch_and_verify_data.py` (the
+reassembled file is gitignored because it is reproducible from the parts and
+every hash is re-verified on placement). The official data tab itself is
+login-gated; if the sponsor's terms are read as prohibiting redistribution of
+the provided rasters in a public repository, the bridge parts should be removed
+and replaced with a hash-only manifest — the gate degrades gracefully (it
+reports that it cannot verify the footprint rather than silently passing).
