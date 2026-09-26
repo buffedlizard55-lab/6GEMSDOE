@@ -14,7 +14,9 @@ python scripts/validate_submission.py downloads/gems6_hgb88-topk03_33cec71ff0.ti
 ```
 
 Exit code 0 means the file satisfies every published format rule. Non-zero means do
-**not** upload it. Re-run in this checkout on 2026-09-25: **PASS, 13/13**.
+**not** upload it. Re-run in this checkout on **2026-09-26 01:19 UTC: PASS, 13/13**
+(also 2026-09-26 00:20 and 2026-09-25 — all 13 checks including NAN-INSIDE-FOOTPRINT;
+see `data/evidence/session_reverification_2026-09-26T0119Z.json`).
 
 ## Why the file must pass the gate first
 

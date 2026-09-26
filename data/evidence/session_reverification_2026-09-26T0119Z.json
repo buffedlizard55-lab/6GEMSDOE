@@ -1,0 +1,50 @@
+{
+  "session": "2026-09-26T01:19Z",
+  "branch": "arena/01a0db4a-6gemsdoe",
+  "note": "Re-verification that the shipped submission file still passes every hard-gate check and that the official rasters are still hash-verified — no rebuild from scratch, as instructed.",
+  "submission_file": {
+    "path": "downloads/gems6_hgb88-topk03_33cec71ff0.tif",
+    "sha256": "33cec71ff00b3f32d0d59c81c156f3f1488ffef46baa4b6499094e24ea1875ab",
+    "bytes": 1652883,
+    "gate": "13/13 PASS",
+    "nan_inside_footprint": 0,
+    "positive_pixels": 155021,
+    "strategy": "topk_hard@0.03"
+  },
+  "data_verification": {
+    "ok": true,
+    "files": [
+      {
+        "file": "training_features.tif",
+        "bytes": 418912844,
+        "sha256": "4371c82e3b8339b807bdffcf4ef59a225520fe2988d521be208ae33743123bc5",
+        "status": "verified"
+      },
+      {
+        "file": "labels.tif",
+        "bytes": 425830,
+        "sha256": "7ba308ccdc4418b31a178f4f1ef21aaa6e152e4028f2f6f64b01f7eb25ae4093",
+        "status": "verified"
+      },
+      {
+        "file": "sample_submission.tif",
+        "bytes": 1599597,
+        "sha256": "2176d08e485aa2cd2860ce8df539db4faf4d76163b38a4dd8c30a40454d35cbc",
+        "status": "verified"
+      }
+    ]
+  },
+  "tests": {
+    "total": 46,
+    "passed": 46,
+    "failed": 0,
+    "suites": ["test_gate.py (12)", "test_metric.py (17)", "test_spec_and_cv.py (17)"]
+  },
+  "site_build": "ok — index.html, verification.html, research.html, assets/style.css regenerated with no diff except evidence timestamp",
+  "account_status": "re-checked 2026-09-26T01:19Z: still 11 GEMS-named repos, Pages built on all 11 — flagged, unchanged from 2026-09-26T00:41Z audit; data transport via codeload still required",
+  "blocked_cv_proxy": {
+    "shipped": 0.1698,
+    "previous": 0.1119,
+    "note": "both are proxies against the public catalogue on spatially blocked, buffered folds — not leaderboard values"
+  }
+}
